@@ -218,6 +218,10 @@ public enum MetadataService {
         // Einen vorhandenen IPTC-IIM-Block konsistent halten, aber keinen neuen anlegen.
         if var iptc = props[kCGImagePropertyIPTCDictionary as String] as? [String: Any] {
             let value: (String) -> String? = { $0.isEmpty ? nil : $0 }
+            // Das Datum ist in XMP `photoshop:DateCreated` maßgeblich; ein IPTC-Datum würde es
+            // sonst beim Löschen wiederherstellen.
+            iptc[kCGImagePropertyIPTCDateCreated as String] = nil
+            iptc[kCGImagePropertyIPTCTimeCreated as String] = nil
             iptc[kCGImagePropertyIPTCSubLocation as String] = value(m.location)
             iptc[kCGImagePropertyIPTCCity as String] = value(m.city)
             iptc[kCGImagePropertyIPTCProvinceState as String] = value(m.state)
@@ -299,10 +303,14 @@ public enum MetadataService {
     }
 
     private static func removeProperty(_ meta: CGMutableImageMetadata, _ dictionary: CFString, _ key: CFString) {
-        guard let tag = CGImageMetadataCopyTagMatchingImageProperty(meta, dictionary, key),
-              let prefix = CGImageMetadataTagCopyPrefix(tag),
-              let name = CGImageMetadataTagCopyName(tag) else { return }
-        _ = CGImageMetadataRemoveTagWithPath(meta, nil, "\(prefix as String):\(name as String)" as CFString)
+        // Mehrfach, falls mehrere XMP-Felder auf dieselbe Eigenschaft abgebildet sind.
+        for _ in 0..<4 {
+            guard let tag = CGImageMetadataCopyTagMatchingImageProperty(meta, dictionary, key),
+                  let prefix = CGImageMetadataTagCopyPrefix(tag),
+                  let name = CGImageMetadataTagCopyName(tag),
+                  CGImageMetadataRemoveTagWithPath(meta, nil, "\(prefix as String):\(name as String)" as CFString)
+            else { return }
+        }
     }
 
     private static func setXMP(_ meta: CGMutableImageMetadata, _ path: String, _ value: String) {
