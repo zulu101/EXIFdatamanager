@@ -90,5 +90,6 @@ Zum Entwickeln lässt sich das Projekt direkt in Xcode öffnen (`open Package.sw
 Sources/ExifCore/          Metadaten lesen/schreiben (ImageIO), ohne Oberfläche, getestet
 Sources/ExifDataManager/   SwiftUI-App
 Tests/ExifCoreTests/       Tests inkl. Schreib-/Lese-Durchlauf mit echten JPEG/TIFF/PNG
-scripts/build-app.sh       Baut das .app-Bundle
+scripts/build-app.sh       Baut das .app-Bundle (inkl. Icon)
+Resources/AppIcon.svg      App-Icon (Quelle), AppIcon.png = gerenderte 1024-px-Version
 ```

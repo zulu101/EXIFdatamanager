@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- EXIF Data Manager – App-Icon.
+       Motiv: zwei alte Papierabzüge mit weißem Rand, ein Orts-Pin und ein Datums-Etikett.
+       Raster nach macOS-Vorgaben: 824 × 824 pt Fläche auf 1024 × 1024 pt Leinwand. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2F6F80"/>
+      <stop offset="1" stop-color="#173B47"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4B860"/>
+      <stop offset="1" stop-color="#E9805A"/>
+    </linearGradient>
+    <linearGradient id="sepia" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D9C3A0"/>
+      <stop offset="1" stop-color="#A88B66"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFDF8"/>
+      <stop offset="1" stop-color="#EFE8DC"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2555A"/>
+      <stop offset="1" stop-color="#C42F3A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0B1E25" flood-opacity="0.45"/>
+    </filter>
+    <clipPath id="frontPhoto">
+      <rect x="-190" y="-200" width="380" height="300" rx="6"/>
+    </clipPath>
+    <clipPath id="backPhoto">
+      <rect x="-170" y="-180" width="340" height="270" rx="6"/>
+    </clipPath>
+  </defs>
+
+  <!-- Grundfläche -->
+  <g filter="url(#shadow)">
+    <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  </g>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#glow)"/>
+
+  <!-- Hinterer Abzug (Sepia) -->
+  <g transform="translate(450 470) rotate(-11)" filter="url(#soft)">
+    <rect x="-200" y="-210" width="400" height="390" rx="10" fill="url(#paper)"/>
+    <g clip-path="url(#backPhoto)">
+      <rect x="-170" y="-180" width="340" height="270" fill="url(#sepia)"/>
+      <circle cx="-60" cy="-60" r="46" fill="#8C6F4E" opacity="0.55"/>
+      <path d="M-170 90 V20 Q-110 -40 -40 0 T100 -10 T170 10 V90 Z" fill="#7D6346" opacity="0.7"/>
+    </g>
+  </g>
+
+  <!-- Vorderer Abzug (Farbe) -->
+  <g transform="translate(560 520) rotate(7)" filter="url(#soft)">
+    <rect x="-220" y="-230" width="440" height="430" rx="10" fill="url(#paper)"/>
+    <g clip-path="url(#frontPhoto)">
+      <rect x="-190" y="-200" width="380" height="300" fill="url(#sky)"/>
+      <circle cx="60" cy="-80" r="52" fill="#FFE7A8"/>
+      <path d="M-190 100 V0 Q-120 -70 -30 -20 T130 -40 T190 -20 V100 Z" fill="#5E8C6A"/>
+      <path d="M-190 100 V50 Q-80 0 30 40 T190 30 V100 Z" fill="#3E6650"/>
+    </g>
+    <!-- Datums-Beschriftung auf dem weißen Rand -->
+    <rect x="-150" y="128" width="190" height="16" rx="8" fill="#B9AE9C"/>
+    <rect x="-150" y="158" width="120" height="16" rx="8" fill="#D3CABB"/>
+  </g>
+
+  <!-- Orts-Pin -->
+  <g transform="translate(735 600)" filter="url(#soft)">
+    <path d="M0 150 C-20 100 -95 40 -95 -25 A95 95 0 1 1 95 -25 C95 40 20 100 0 150 Z"
+          fill="url(#pin)" stroke="#FFFFFF" stroke-width="10" stroke-linejoin="round"/>
+    <circle cx="0" cy="-25" r="36" fill="#FFFFFF"/>
+  </g>
+</svg>
