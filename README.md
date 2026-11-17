@@ -28,7 +28,7 @@ Programme lesen – unabhängig von dieser App.
 
 | Angabe | Gespeichert in |
 | --- | --- |
-| Aufnahmedatum | EXIF `DateTimeOriginal` (immer vollständig, fehlende Teile = 1. Jan. bzw. 12:00 Uhr) und XMP `photoshop:DateCreated` (mit echter Genauigkeit, z. B. `1985` oder `1985-07`) |
+| Aufnahmedatum | EXIF `DateTimeOriginal` (immer vollständig, fehlende Teile = 1. Jan. bzw. 00:00 Uhr) und XMP `photoshop:DateCreated` (mit echter Genauigkeit, z. B. `1985` oder `1985-07`) |
 | Koordinaten | EXIF GPS (`GPSLatitude`/`GPSLongitude` + Ref) |
 | Ortsbezeichnung | XMP `Iptc4xmpCore:Location` (IPTC Sublocation) |
 | Stadt / Region / Land | XMP `photoshop:City` / `photoshop:State` / `photoshop:Country` |

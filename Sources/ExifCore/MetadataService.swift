@@ -72,6 +72,12 @@ public enum MetadataService {
             let lonRef = (gps[kCGImagePropertyGPSLongitudeRef as String] as? String ?? "E").uppercased()
             m.latitude = latRef == "S" ? -abs(lat) : abs(lat)
             m.longitude = lonRef == "W" ? -abs(lon) : abs(lon)
+        } else if let xmp,
+                  let lat = xmpCoordinate(xmp, kCGImagePropertyGPSLatitude),
+                  let lon = xmpCoordinate(xmp, kCGImagePropertyGPSLongitude) {
+            // Manche Programme speichern GPS nur in XMP.
+            m.latitude = lat
+            m.longitude = lon
         }
 
         // Ort als Text
@@ -135,18 +141,36 @@ public enum MetadataService {
             throw MetadataError.unsupportedFormat(url)
         }
 
-        let options: [String: Any] = [
-            kCGImageDestinationMetadata as String: meta,
-            // Wir übergeben die komplette (kopierte) Metadaten-Menge. Ohne Merge lassen sich
-            // so auch Felder löschen.
-            kCGImageDestinationMergeMetadata as String: false,
-        ]
-        var error: Unmanaged<CFError>?
-        guard CGImageDestinationCopyImageSource(destination, source, options as CFDictionary, &error) else {
-            try? FileManager.default.removeItem(at: tmp)
-            let reason = error.map { ($0.takeRetainedValue() as Error).localizedDescription }
-                ?? "Das Format unterstützt das verlustfreie Schreiben von Metadaten nicht."
-            throw MetadataError.writeFailed(url, reason)
+        let isTIFF = UTType(type as String)?.conforms(to: .tiff) ?? false
+        if isTIFF {
+            // TIFF: `CopyImageSource` legt dort keinen GPS-Block an. TIFF ist verlustfrei, daher
+            // schreiben wir das Bild mit expliziten EXIF/GPS-Angaben neu (Pixel bleiben identisch).
+            guard CGImageSourceGetCount(source) == 1,
+                  let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+                try? FileManager.default.removeItem(at: tmp)
+                throw MetadataError.writeFailed(url, "Mehrseitige TIFF-Dateien werden nicht unterstützt.")
+            }
+            let properties = updatedProperties(
+                CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] ?? [:], with: m)
+            CGImageDestinationAddImageAndMetadata(destination, image, meta, properties as CFDictionary)
+            guard CGImageDestinationFinalize(destination) else {
+                try? FileManager.default.removeItem(at: tmp)
+                throw MetadataError.writeFailed(url, "Die TIFF-Datei konnte nicht geschrieben werden.")
+            }
+        } else {
+            let options: [String: Any] = [
+                kCGImageDestinationMetadata as String: meta,
+                // Wir übergeben die komplette (kopierte) Metadaten-Menge. Ohne Merge lassen sich
+                // so auch Felder löschen.
+                kCGImageDestinationMergeMetadata as String: false,
+            ]
+            var error: Unmanaged<CFError>?
+            guard CGImageDestinationCopyImageSource(destination, source, options as CFDictionary, &error) else {
+                try? FileManager.default.removeItem(at: tmp)
+                let reason = error.map { ($0.takeRetainedValue() as Error).localizedDescription }
+                    ?? "Das Format unterstützt das verlustfreie Schreiben von Metadaten nicht."
+                throw MetadataError.writeFailed(url, reason)
+            }
         }
 
         // Plausibilitätsprüfung der neuen Datei, bevor das Original ersetzt wird.
@@ -163,6 +187,47 @@ public enum MetadataService {
             try? FileManager.default.removeItem(at: tmp)
             throw MetadataError.writeFailed(url, error.localizedDescription)
         }
+    }
+
+    /// Klassische Property-Dictionaries (EXIF, GPS, TIFF, IPTC) passend zu den Metadaten anpassen.
+    static func updatedProperties(_ original: [String: Any], with m: PhotoMetadata) -> [String: Any] {
+        var props = original
+
+        var exif = props[kCGImagePropertyExifDictionary as String] as? [String: Any] ?? [:]
+        exif[kCGImagePropertyExifDateTimeOriginal as String] = m.date?.exifString
+        props[kCGImagePropertyExifDictionary as String] = exif
+
+        var gps = props[kCGImagePropertyGPSDictionary as String] as? [String: Any] ?? [:]
+        if let lat = m.latitude, let lon = m.longitude {
+            gps[kCGImagePropertyGPSLatitude as String] = abs(lat)
+            gps[kCGImagePropertyGPSLatitudeRef as String] = lat < 0 ? "S" : "N"
+            gps[kCGImagePropertyGPSLongitude as String] = abs(lon)
+            gps[kCGImagePropertyGPSLongitudeRef as String] = lon < 0 ? "W" : "E"
+        } else {
+            for key in [kCGImagePropertyGPSLatitude, kCGImagePropertyGPSLatitudeRef,
+                        kCGImagePropertyGPSLongitude, kCGImagePropertyGPSLongitudeRef] {
+                gps[key as String] = nil
+            }
+        }
+        props[kCGImagePropertyGPSDictionary as String] = gps.isEmpty ? nil : gps
+
+        var tiff = props[kCGImagePropertyTIFFDictionary as String] as? [String: Any] ?? [:]
+        tiff[kCGImagePropertyTIFFImageDescription as String] = m.caption.isEmpty ? nil : m.caption
+        props[kCGImagePropertyTIFFDictionary as String] = tiff
+
+        // Einen vorhandenen IPTC-IIM-Block konsistent halten, aber keinen neuen anlegen.
+        if var iptc = props[kCGImagePropertyIPTCDictionary as String] as? [String: Any] {
+            let value: (String) -> String? = { $0.isEmpty ? nil : $0 }
+            iptc[kCGImagePropertyIPTCSubLocation as String] = value(m.location)
+            iptc[kCGImagePropertyIPTCCity as String] = value(m.city)
+            iptc[kCGImagePropertyIPTCProvinceState as String] = value(m.state)
+            iptc[kCGImagePropertyIPTCCountryPrimaryLocationName as String] = value(m.country)
+            iptc[kCGImagePropertyIPTCCaptionAbstract as String] = value(m.caption)
+            let subject = PhotoMetadata.unique(m.keywords + m.people)
+            iptc[kCGImagePropertyIPTCKeywords as String] = subject.isEmpty ? nil : subject
+            props[kCGImagePropertyIPTCDictionary as String] = iptc
+        }
+        return props
     }
 
     static func apply(_ m: PhotoMetadata, to meta: CGMutableImageMetadata) {
@@ -305,6 +370,25 @@ public enum MetadataService {
         if let n = value as? NSNumber { return n.doubleValue }
         if let s = value as? String { return Double(s) }
         return nil
+    }
+
+    /// XMP-Koordinate wie „33,51.40704S“ oder „33,51,24S“ in Dezimalgrad umrechnen.
+    private static func xmpCoordinate(_ meta: CGImageMetadata, _ key: CFString) -> Double? {
+        guard let tag = CGImageMetadataCopyTagMatchingImageProperty(meta, kCGImagePropertyGPSDictionary, key),
+              let raw = CGImageMetadataTagCopyValue(tag) as? String else { return nil }
+        return parseXMPCoordinate(raw)
+    }
+
+    static func parseXMPCoordinate(_ raw: String) -> Double? {
+        var s = raw.trimmingCharacters(in: .whitespaces).uppercased()
+        guard let ref = s.last, "NSEW".contains(ref) else { return Double(s) }
+        s.removeLast()
+        let parts = s.split(separator: ",").compactMap { Double($0) }
+        guard !parts.isEmpty else { return nil }
+        var value = parts[0]
+        if parts.count > 1 { value += parts[1] / 60 }
+        if parts.count > 2 { value += parts[2] / 3600 }
+        return (ref == "S" || ref == "W") ? -value : value
     }
 
     private static func pixelSize(_ source: CGImageSource) -> [Int] {

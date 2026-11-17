@@ -35,8 +35,8 @@ public enum DatePrecision: String, CaseIterable, Identifiable, Sendable {
 ///
 /// Gespeichert wird es zweifach:
 /// * EXIF `DateTimeOriginal` – braucht immer ein vollständiges Datum. Fehlende Teile
-///   werden mit 1. Januar bzw. 12:00 Uhr aufgefüllt (Mittag vermeidet Datumssprünge
-///   durch Zeitzonen-Umrechnungen in manchen Programmen).
+///   werden mit 1. Januar bzw. 00:00 Uhr aufgefüllt (so macht es auch ImageIO, wenn es
+///   EXIF aus XMP ableitet).
 /// * XMP `photoshop:DateCreated` – erlaubt laut Standard Teil-Daten wie „1985“ oder
 ///   „1985-07“. Darüber bleibt die Genauigkeit dauerhaft erhalten.
 public struct PartialDate: Sendable, Equatable {
@@ -91,7 +91,7 @@ public struct PartialDate: Sendable, Equatable {
     public var exifString: String {
         let m = precision.rank >= DatePrecision.month.rank ? month : 1
         let d = precision.rank >= DatePrecision.day.rank ? day : 1
-        let (h, mi, s) = precision == .dateTime ? (hour, minute, second) : (12, 0, 0)
+        let (h, mi, s) = precision == .dateTime ? (hour, minute, second) : (0, 0, 0)
         return String(format: "%04ld:%02ld:%02ld %02ld:%02ld:%02ld", year, m, d, h, mi, s)
     }
 

@@ -11,9 +11,9 @@ final class PartialDateTests: XCTestCase {
     }
 
     func testExifStringsFillMissingParts() {
-        XCTAssertEqual(PartialDate(precision: .year, year: 1985, month: 7, day: 14).exifString, "1985:01:01 12:00:00")
-        XCTAssertEqual(PartialDate(precision: .month, year: 1985, month: 7, day: 14).exifString, "1985:07:01 12:00:00")
-        XCTAssertEqual(PartialDate(precision: .day, year: 1985, month: 7, day: 14).exifString, "1985:07:14 12:00:00")
+        XCTAssertEqual(PartialDate(precision: .year, year: 1985, month: 7, day: 14).exifString, "1985:01:01 00:00:00")
+        XCTAssertEqual(PartialDate(precision: .month, year: 1985, month: 7, day: 14).exifString, "1985:07:01 00:00:00")
+        XCTAssertEqual(PartialDate(precision: .day, year: 1985, month: 7, day: 14).exifString, "1985:07:14 00:00:00")
         XCTAssertEqual(PartialDate(precision: .dateTime, year: 1985, month: 7, day: 14, hour: 18, minute: 30).exifString,
                        "1985:07:14 18:30:00")
     }
@@ -38,7 +38,7 @@ final class PartialDateTests: XCTestCase {
     }
 
     func testConsistency() {
-        let exif = PartialDate(exifString: "1985:01:01 12:00:00")!
+        let exif = PartialDate(exifString: "1985:01:01 00:00:00")!
         XCTAssertTrue(PartialDate(xmpString: "1985")!.isConsistent(with: exif))
         XCTAssertFalse(PartialDate(xmpString: "1986")!.isConsistent(with: exif))
         XCTAssertFalse(PartialDate(xmpString: "1985-07")!.isConsistent(with: exif))
@@ -49,5 +49,11 @@ final class PartialDateTests: XCTestCase {
                        PartialDate(precision: .year, year: 1985, month: 9))
         XCTAssertNotEqual(PartialDate(precision: .month, year: 1985, month: 3),
                           PartialDate(precision: .month, year: 1985, month: 9))
+    }
+
+    func testParseXMPCoordinate() {
+        XCTAssertEqual(MetadataService.parseXMPCoordinate("33,51.5S")!, -33.858333, accuracy: 0.00001)
+        XCTAssertEqual(MetadataService.parseXMPCoordinate("8,30,36W")!, -8.51, accuracy: 0.00001)
+        XCTAssertEqual(MetadataService.parseXMPCoordinate("48,8.4N")!, 48.14, accuracy: 0.00001)
     }
 }

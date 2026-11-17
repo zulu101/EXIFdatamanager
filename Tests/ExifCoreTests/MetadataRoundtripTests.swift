@@ -91,7 +91,7 @@ final class MetadataRoundtripTests: XCTestCase {
         // Echte EXIF-/GPS-Felder (nicht nur XMP), damit z. B. Apple Fotos sie findet.
         let props = properties(url)
         let exif = props[kCGImagePropertyExifDictionary as String] as? [String: Any]
-        XCTAssertEqual(exif?[kCGImagePropertyExifDateTimeOriginal as String] as? String, "1985:07:14 12:00:00", ext)
+        XCTAssertEqual(exif?[kCGImagePropertyExifDateTimeOriginal as String] as? String, "1985:07:14 00:00:00", ext)
         let gps = props[kCGImagePropertyGPSDictionary as String] as? [String: Any]
         XCTAssertEqual(gps?[kCGImagePropertyGPSLatitudeRef as String] as? String, "S", ext)
         XCTAssertEqual(gps?[kCGImagePropertyGPSLongitudeRef as String] as? String, "E", ext)
@@ -130,7 +130,7 @@ final class MetadataRoundtripTests: XCTestCase {
         try MetadataService.write(sample(), to: url)
         let data = try Data(contentsOf: url)
         // Im EXIF-Block steht das Datum im Format „JJJJ:MM:TT“, in XMP dagegen „JJJJ-MM-TT“.
-        XCTAssertNotNil(data.range(of: Data("1985:07:14 12:00:00".utf8)))
+        XCTAssertNotNil(data.range(of: Data("1985:07:14 00:00:00".utf8)))
     }
 
     func testTIFFRoundtrip() throws {
