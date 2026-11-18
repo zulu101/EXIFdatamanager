@@ -14,84 +14,82 @@ struct BatchEditView: View {
     @State private var addKeywords: [String] = []
     @State private var applyCaption = false
     @State private var caption = ""
-    @State private var appliedMessage: String?
 
     var body: some View {
-        VStack(spacing: 0) {
-            Form {
-                Section {
-                    ScrollView(.horizontal) {
-                        HStack(spacing: 6) {
-                            ForEach(items) { item in
-                                Group {
-                                    if let thumb = item.thumbnail {
-                                        Image(nsImage: thumb).resizable().scaledToFill()
-                                    } else {
-                                        Rectangle().fill(.quaternary)
-                                    }
+        Form {
+            Section {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 6) {
+                        ForEach(items) { item in
+                            Group {
+                                if let thumb = item.thumbnail {
+                                    Image(nsImage: thumb).resizable().scaledToFill()
+                                } else {
+                                    Rectangle().fill(.quaternary)
                                 }
-                                .frame(width: 64, height: 64)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                                .help(item.fileName)
                             }
+                            .frame(width: 64, height: 64)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .help(item.fileName)
                         }
                     }
-                } header: {
-                    Text("\(items.count) Fotos ausgewählt")
-                } footer: {
-                    Text("Nur die eingeschalteten Bereiche werden übernommen. Personen und Schlagwörter werden ergänzt, nicht ersetzt.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
+            } header: {
+                Text("\(items.count) Fotos ausgewählt")
+            } footer: {
+                Text("Nur die eingeschalteten Bereiche werden übernommen. Personen und Schlagwörter werden ergänzt, nicht ersetzt.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
-                Section("Aufnahmedatum") {
-                    Toggle("Datum für alle setzen", isOn: $applyDate)
-                    if applyDate {
-                        DateEditor(date: $date)
-                    }
-                }
-
-                Section("Aufnahmeort") {
-                    Toggle("Ort für alle setzen", isOn: $applyPlace)
-                    if applyPlace {
-                        LocationEditor(metadata: $place)
-                    }
-                }
-
-                Section("Personen hinzufügen") {
-                    TokenEditor(values: $addPeople, store: model.people, placeholder: "Name eingeben und ⏎ drücken")
-                }
-
-                Section("Schlagwörter hinzufügen") {
-                    TokenEditor(values: $addKeywords, store: model.keywords, placeholder: "z. B. Urlaub Italien 1978")
-                }
-
-                Section("Beschreibung") {
-                    Toggle("Beschreibung für alle setzen (ersetzt vorhandene)", isOn: $applyCaption)
-                    if applyCaption {
-                        TextField("Beschreibung", text: $caption, axis: .vertical)
-                            .lineLimit(3...8)
-                            .labelsHidden()
-                    }
+            Section("Aufnahmedatum") {
+                Toggle("Datum für alle setzen", isOn: $applyDate)
+                if applyDate {
+                    DateEditor(date: $date)
                 }
             }
-            .formStyle(.grouped)
 
-            Divider()
-            HStack {
-                if let appliedMessage {
-                    Label(appliedMessage, systemImage: "checkmark.circle")
-                        .foregroundStyle(.secondary)
-                        .font(.callout)
+            Section("Aufnahmeort") {
+                Toggle("Ort für alle setzen", isOn: $applyPlace)
+                if applyPlace {
+                    LocationEditor(metadata: $place)
                 }
-                Spacer()
-                Button("Auf \(items.count) Fotos übernehmen") { apply() }
-                    .disabled(!hasChanges)
-                Button("Alle speichern") { Task { await model.saveAll() } }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!model.hasUnsavedChanges || model.isSaving)
             }
-            .padding(12)
+
+            Section("Personen hinzufügen") {
+                TokenEditor(values: $addPeople, store: model.people, placeholder: "Name eingeben und ⏎ drücken")
+            }
+
+            Section("Schlagwörter hinzufügen") {
+                TokenEditor(values: $addKeywords, store: model.keywords, placeholder: "z. B. Urlaub Italien 1978")
+            }
+
+            Section("Beschreibung") {
+                Toggle("Beschreibung für alle setzen (ersetzt vorhandene)", isOn: $applyCaption)
+                if applyCaption {
+                    TextField("Beschreibung", text: $caption, axis: .vertical)
+                        .lineLimit(3...8)
+                        .labelsHidden()
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ActionBar {
+                EmptyView()
+            } trailing: {
+                Button {
+                    apply()
+                } label: {
+                    Label("Auf \(items.count) Fotos übernehmen", systemImage: "square.stack.3d.down.forward")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.indigo)
+                .controlSize(.large)
+                .disabled(!hasChanges)
+                .help("Die eingeschalteten Angaben bei allen ausgewählten Fotos eintragen. Gespeichert wird erst mit „Speichern“.")
+            }
         }
     }
 
@@ -122,6 +120,5 @@ struct BatchEditView: View {
                 item.edited.caption = caption
             }
         }
-        appliedMessage = "Übernommen – noch nicht gespeichert"
     }
 }

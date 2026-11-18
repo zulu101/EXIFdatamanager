@@ -29,9 +29,8 @@ struct ContentView: View {
                 Button {
                     Task { await model.saveAll() }
                 } label: {
-                    Label("Alle speichern (\(model.dirtyItems.count))", systemImage: "square.and.arrow.down")
+                    Label("Alle speichern", systemImage: "square.and.arrow.down")
                 }
-                .labelStyle(.titleAndIcon)
                 .disabled(!model.hasUnsavedChanges || model.isSaving)
                 .help("Alle Änderungen in die Bilddateien schreiben (⌘S)")
             }
@@ -75,15 +74,64 @@ struct DetailView: View {
 }
 
 struct PhotoDetailView: View {
+    @Environment(AppModel.self) private var model
     let item: PhotoItem
 
     var body: some View {
-        HSplitView {
+        // Bewusst HStack statt HSplitView: HSplitView übernimmt die volle Höhe des Formulars,
+        // wodurch das Fenster zu hoch werden und die Aktionsleiste unten verschwinden kann.
+        HStack(spacing: 0) {
             ImagePreview(item: item)
-                .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
+            Divider()
             MetadataEditorView(item: item)
-                .frame(minWidth: 380, idealWidth: 440, maxWidth: 560)
+                .frame(width: 420)
+                .frame(maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ActionBar {
+                copyFromPreviousMenu
+            } trailing: {
+                Button("Zurücksetzen") { item.revert() }
+                    .controlSize(.large)
+                    .disabled(!item.isDirty)
+                    .help("Ungespeicherte Änderungen an diesem Foto verwerfen")
+            }
+        }
+    }
+
+    private var copyFromPreviousMenu: some View {
+        let previous = model.previous(of: item)
+        return Menu {
+            Button("Datum") { if let p = previous { item.edited.date = p.edited.date } }
+            Button("Ort") { if let p = previous { copyPlace(from: p.edited) } }
+            Button("Personen") { if let p = previous { item.edited.people = p.edited.people } }
+            Button("Schlagwörter") { if let p = previous { item.edited.keywords = p.edited.keywords } }
+            Divider()
+            Button("Datum, Ort, Personen & Schlagwörter") {
+                guard let p = previous else { return }
+                item.edited.date = p.edited.date
+                copyPlace(from: p.edited)
+                item.edited.people = p.edited.people
+                item.edited.keywords = p.edited.keywords
+            }
+        } label: {
+            Label("Vom vorherigen Foto", systemImage: "arrow.up.doc.on.clipboard")
+        }
+        .controlSize(.large)
+        .fixedSize()
+        .disabled(previous == nil)
+        .help("Angaben vom Foto darüber in der Liste übernehmen – praktisch bei Bildern vom selben Film.")
+    }
+
+    private func copyPlace(from source: PhotoMetadata) {
+        item.edited.location = source.location
+        item.edited.city = source.city
+        item.edited.state = source.state
+        item.edited.country = source.country
+        item.edited.latitude = source.latitude
+        item.edited.longitude = source.longitude
     }
 }
 

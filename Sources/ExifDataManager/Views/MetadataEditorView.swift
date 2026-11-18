@@ -7,97 +7,48 @@ struct MetadataEditorView: View {
     @Bindable var item: PhotoItem
 
     var body: some View {
-        VStack(spacing: 0) {
-            Form {
-                if let warning = item.saveWarning {
-                    Section {
-                        Label(warning, systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                    }
-                }
-
-                Section("Aufnahmedatum") {
-                    DateEditor(date: $item.edited.date)
-                }
-
-                Section("Aufnahmeort") {
-                    LocationEditor(metadata: $item.edited)
-                }
-
+        Form {
+            if let warning = item.saveWarning {
                 Section {
-                    TokenEditor(values: $item.edited.people, store: model.people,
-                                placeholder: "Name eingeben und ⏎ drücken")
-                } header: {
-                    Text("Abgebildete Personen")
-                } footer: {
-                    Text("Tipp: Personen z. B. von links nach rechts eintragen und die Anordnung in der Beschreibung festhalten.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Beschreibung") {
-                    TextField("Beschreibung", text: $item.edited.caption,
-                              prompt: Text("Was ist auf dem Foto zu sehen? Anlass, Geschichte, …"),
-                              axis: .vertical)
-                        .lineLimit(3...10)
-                        .labelsHidden()
-                }
-
-                Section("Schlagwörter") {
-                    TokenEditor(values: $item.edited.keywords, store: model.keywords,
-                                placeholder: "z. B. Urlaub, Hochzeit, Weihnachten")
+                    Label(warning, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
                 }
             }
-            .formStyle(.grouped)
 
-            Divider()
-            footer
-                .padding(12)
+            Section("Aufnahmedatum") {
+                DateEditor(date: $item.edited.date)
+            }
+
+            Section("Aufnahmeort") {
+                LocationEditor(metadata: $item.edited)
+            }
+
+            Section {
+                TokenEditor(values: $item.edited.people, store: model.people,
+                            placeholder: "Name eingeben und ⏎ drücken")
+            } header: {
+                Text("Abgebildete Personen")
+            } footer: {
+                Text("Tipp: Personen z. B. von links nach rechts eintragen und die Anordnung in der Beschreibung festhalten.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Beschreibung") {
+                TextField("Beschreibung", text: $item.edited.caption,
+                          prompt: Text("Was ist auf dem Foto zu sehen? Anlass, Geschichte, …"),
+                          axis: .vertical)
+                    .lineLimit(3...10)
+                    .labelsHidden()
+            }
+
+            Section("Schlagwörter") {
+                TokenEditor(values: $item.edited.keywords, store: model.keywords,
+                            placeholder: "z. B. Urlaub, Hochzeit, Weihnachten")
+            }
         }
-    }
-
-    private var footer: some View {
-        HStack {
-            let previous = model.previous(of: item)
-            Menu {
-                Button("Datum") { if let p = previous { item.edited.date = p.edited.date } }
-                Button("Ort") { if let p = previous { copyPlace(from: p.edited) } }
-                Button("Personen") { if let p = previous { item.edited.people = p.edited.people } }
-                Button("Schlagwörter") { if let p = previous { item.edited.keywords = p.edited.keywords } }
-                Divider()
-                Button("Datum, Ort, Personen & Schlagwörter") {
-                    guard let p = previous else { return }
-                    item.edited.date = p.edited.date
-                    copyPlace(from: p.edited)
-                    item.edited.people = p.edited.people
-                    item.edited.keywords = p.edited.keywords
-                }
-            } label: {
-                Label("Vom vorherigen Foto", systemImage: "arrow.up.doc.on.clipboard")
-            }
-            .fixedSize()
-            .disabled(previous == nil)
-            .help("Angaben vom Foto darüber in der Liste übernehmen – praktisch bei Bildern vom selben Film.")
-
-            Spacer()
-
-            Button("Zurücksetzen") { item.revert() }
-                .disabled(!item.isDirty)
-            Button("Speichern") {
-                Task { await model.save([item]) }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!item.isDirty || model.isSaving)
-        }
-    }
-
-    private func copyPlace(from source: PhotoMetadata) {
-        item.edited.location = source.location
-        item.edited.city = source.city
-        item.edited.state = source.state
-        item.edited.country = source.country
-        item.edited.latitude = source.latitude
-        item.edited.longitude = source.longitude
+        .formStyle(.grouped)
+        .frame(maxHeight: .infinity)
     }
 }
 
