@@ -1,0 +1,36 @@
+name: Release
+
+# Ein Tag wie „v1.0.0“ baut die App und veröffentlicht sie als GitHub-Release.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Übersetzungen prüfen
+        run: |
+          plutil -lint Resources/Localization/*.lproj/Localizable.strings
+          python3 scripts/check_localization.py
+
+      - name: Tests
+        run: swift test
+
+      - name: App bauen
+        run: VERSION="${GITHUB_REF_NAME#v}" ./scripts/build-app.sh
+
+      - name: Release veröffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "build/EXIF Data Manager.zip#EXIF Data Manager (macOS).zip" \
+            --title "EXIF Data Manager $GITHUB_REF_NAME" \
+            --generate-notes

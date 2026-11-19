@@ -1,0 +1,39 @@
+name: Build & Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift-Version
+        run: swift --version
+
+      - name: Übersetzungen prüfen
+        run: |
+          plutil -lint Resources/Localization/*.lproj/Localizable.strings
+          python3 scripts/check_localization.py
+
+      - name: Tests
+        run: swift test
+
+      - name: Gegenprüfung der Gesichtsregionen mit ExifTool
+        run: |
+          brew install exiftool
+          mkdir -p build/sample
+          EXIF_SAMPLE_DIR="$PWD/build/sample" swift test --filter FaceRegionTests/testWriteSampleForExifTool
+          exiftool -G1 -struct -j -XMP-mwg-rs:all -XMP-iptcExt:all build/sample/faces.jpg | tee build/sample/exiftool.json
+          python3 scripts/check_regions.py build/sample/exiftool.json
+
+      - name: App bauen
+        run: ./scripts/build-app.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EXIF-Data-Manager
+          path: build/EXIF Data Manager.zip
