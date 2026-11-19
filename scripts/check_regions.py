@@ -40,7 +40,8 @@ image_regions = find(data, "ImageRegion")
 assert len(image_regions) == 2, f"IPTC: 2 Regionen erwartet, {len(image_regions)} gefunden"
 r = image_regions[0]
 b = r["RegionBoundary"]
-assert b["RbShape"] == "rectangle" and b["RbUnit"] == "relative", b
+# ExifTool zeigt die gespeicherten Werte „rectangle“/„relative“ großgeschrieben an.
+assert b["RbShape"].lower() == "rectangle" and b["RbUnit"].lower() == "relative", b
 assert close(b["RbX"], 0.2) and close(b["RbY"], 0.3), b
 assert close(b["RbW"], 0.25) and close(b["RbH"], 0.2), b
 person = r["PersonInImage"]
