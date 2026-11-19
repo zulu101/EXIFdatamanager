@@ -1,93 +1,78 @@
-# EXIF Data Manager
+<p align="center">
+  <img src="Resources/AppIcon.png" width="128" alt="EXIF Data Manager app icon">
+</p>
 
-Eine schlichte macOS-App, um **eingescannte analoge Fotos** mit Metadaten zu versehen –
-damit Aufnahmedatum, Ort und die abgebildeten Personen auch in Jahrzehnten noch bekannt sind.
+<h1 align="center">EXIF Data Manager</h1>
 
-Die Angaben werden **direkt in die Bilddateien** geschrieben, in etablierten Standards
-(EXIF, IPTC und XMP). So können sie auch Apple Fotos, Lightroom, digiKam oder künftige
-Programme lesen – unabhängig von dieser App.
+<p align="center">
+  A simple macOS app for adding dates, places and people to scanned analog photos –<br>
+  stored directly in the image files, using open standards.
+</p>
 
-## Funktionen
+<p align="center">
+  <a href="https://github.com/zulu101/EXIFdatamanager/actions/workflows/build.yml"><img src="https://github.com/zulu101/EXIFdatamanager/actions/workflows/build.yml/badge.svg" alt="Build & Test"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-lightgrey.svg" alt="macOS 14+">
+</p>
 
-- **Aufnahmedatum mit Genauigkeit:** „nur Jahr“, „Monat & Jahr“, „genauer Tag“ oder „Tag & Uhrzeit“.
-- **Aufnahmeort:** Ortssuche, Klick in die Karte, automatische Ermittlung von Stadt/Region/Land,
-  eigene Ortsbezeichnung (z. B. „Haus der Großeltern“) und eine Liste zuletzt verwendeter Orte.
-- **Personen:** Namen werden gemerkt und beim nächsten Foto vorgeschlagen.
-- **Gesichter markieren:** Rahmen mit der Maus aufziehen und benennen, oder Gesichter automatisch
-  erkennen lassen (lokal auf dem Mac, mit Apples Vision-Framework). Experimentell: Namensvorschläge
-  anhand bereits benannter Gesichter.
-- **Beschreibung und Schlagwörter.**
-- **Stapelbearbeitung:** Mehrere Fotos auswählen (⇧/⌘-Klick) und Datum, Ort, Personen usw.
-  auf einmal setzen – ideal für einen ganzen Film.
-- **„Vom vorherigen Foto übernehmen“** für Bildserien.
-- **Sicher speichern:**
-  - Die Bilddaten werden nicht neu komprimiert, nur die Metadaten werden ersetzt.
-  - Die neue Datei wird erst geprüft und ersetzt dann das Original.
-  - Optional wird vor dem ersten Speichern eine Sicherungskopie angelegt (Standard: an).
-  - Bevor das Original ersetzt wird, liest die App die neue Datei vollständig ein und vergleicht
-    alle Angaben. Fehlt etwas, bleibt das Original unverändert und es erscheint eine Meldung.
-- Unterstützte Formate: JPEG, TIFF, PNG (HEIC je nach macOS-Version).
+<p align="center">
+  <b>English</b> · <a href="README.de.md">Deutsch</a>
+</p>
 
-## Sprache / Language
+---
 
-Die App gibt es auf **Deutsch** und **Englisch**. Standardmäßig folgt sie der Sprache von macOS.
-Umstellen lässt sie sich in den Einstellungen der App (⌘,) unter „Sprache“ oder – wie bei jeder
-Mac-App – unter *Systemeinstellungen → Allgemein → Sprache & Region → Apps*.
+Old family photos usually come without any information attached. **EXIF Data Manager** helps you record
+*when* a photo was taken, *where*, and *who* is in it – so this knowledge isn’t lost over the coming
+decades.
 
-The app is available in **German** and **English** and follows the macOS language by default. You can
-change it in the app settings (⌘,) under “Language”.
+All information is written **directly into the image files** using established standards (EXIF, IPTC and
+XMP). Apple Photos, Lightroom, digiKam and future software can read it – independently of this app.
 
-Übersetzungen liegen in `Resources/Localization/<Sprache>.lproj/Localizable.strings`. Die deutschen
-Texte im Code sind zugleich die Schlüssel. `scripts/check_localization.py` prüft, ob jeder Text eine
-englische Übersetzung hat (läuft auch im CI). Beim Start direkt aus Xcode bzw. per `swift run` ist die
-Oberfläche immer deutsch; die Übersetzungen werden erst ins gebaute App-Bundle kopiert.
+<!-- Screenshots: add images to docs/screenshots/ and uncomment the lines below.
+<p align="center">
+  <img src="docs/screenshots/main-window.png" width="800" alt="Main window">
+</p>
+<p align="center">
+  <img src="docs/screenshots/faces.png" width="400" alt="Marking faces">
+  <img src="docs/screenshots/batch-editing.png" width="400" alt="Batch editing">
+</p>
+-->
 
-## Wo landen die Daten in der Datei?
+## Features
 
-| Angabe | Gespeichert in |
-| --- | --- |
-| Aufnahmedatum | EXIF `DateTimeOriginal` (immer vollständig, fehlende Teile = 1. Jan. bzw. 00:00 Uhr) und XMP `photoshop:DateCreated` (mit echter Genauigkeit, z. B. `1985` oder `1985-07`) |
-| Koordinaten | EXIF GPS (`GPSLatitude`/`GPSLongitude` + Ref) |
-| Ortsbezeichnung | XMP `Iptc4xmpCore:Location` (IPTC Sublocation) |
-| Stadt / Region / Land | XMP `photoshop:City` / `photoshop:State` / `photoshop:Country` |
-| Personen | XMP `Iptc4xmpExt:PersonInImage` **und** als Schlagwort in `dc:subject` |
-| Gesichtsrahmen | XMP `mwg-rs:Regions` (Metadata Working Group, Typ „Face“) **und** `Iptc4xmpExt:ImageRegion` (IPTC, Inhaltstyp „human“, mit „Person im Bild“) |
-| Schlagwörter | XMP `dc:subject` |
-| Beschreibung | EXIF `ImageDescription` / XMP `dc:description` |
-
-Personen werden zusätzlich als Schlagwort gespeichert, weil viele Programme (u. a. Apple Fotos)
-das IPTC-Feld „Person im Bild“ nicht anzeigen, Schlagwörter aber schon.
-
-### Gesichter
-
-Rahmen und Namen werden in **zwei offenen Standards** gespeichert, damit möglichst viele Programme
-sie lesen können: MWG-Regionen (z. B. Lightroom Classic, digiKam, ExifTool) und IPTC-Bildregionen
-(offizieller IPTC-Standard seit 2019). Die Koordinaten beziehen sich – wie vom MWG-Standard
-verlangt – auf das gespeicherte, ungedrehte Bild; gedrehte Fotos werden korrekt umgerechnet.
-Regionen anderer Art aus anderen Programmen (z. B. Haustiere) bleiben erhalten.
-In **PNG-Dateien** werden keine Gesichtsrahmen gespeichert, weil ImageIO verschachtelte XMP-Strukturen
-dort in Tests nicht zuverlässig geschrieben hat – die Namen werden aber gespeichert.
-
-Die automatische Erkennung findet nur, *wo* Gesichter sind. Für Namensvorschläge vergleicht die App
-Bildausschnitte mit bereits benannten Gesichtern der geladenen Fotos. Diese Vergleichsdaten werden
-nur im Arbeitsspeicher berechnet und **nie** gespeichert – in der Datei landen ausschließlich
-Rahmen und Namen. Apple Fotos zeigt die Rahmen nicht an, übernimmt aber die Namen als Schlagwörter.
-
-Der vom Scanner gesetzte Zeitpunkt der Digitalisierung (`DateTimeDigitized`) und andere vorhandene
-Angaben bleiben unverändert.
+- **Date taken with precision** – “year only”, “month & year”, “exact day” or “day & time”. Perfect when
+  all you know is “summer 1978”.
+- **Location** – search for places, click on the map, automatic city/region/country lookup, custom place
+  names (e.g. “Grandparents’ house”) and a list of recently used places.
+- **People** – names are remembered and suggested for the next photo.
+- **Mark faces** – drag a frame around a face and name it, or let faces be detected automatically
+  (locally on your Mac with Apple’s Vision framework). *Experimental:* name suggestions based on faces
+  you have already named.
+- **Description and keywords.**
+- **Batch editing** – select several photos (⇧/⌘-click) and set date, place, people, etc. at once – ideal
+  for a whole film roll.
+- **“Copy from previous photo”** for photo series.
+- **Safe saving**
+  - Image data is never re-compressed – only the metadata is replaced.
+  - Before the original is replaced, the app re-reads the new file and compares every detail. If anything
+    is missing, the original stays untouched.
+  - Optional backup copy before the first save (on by default).
+- **German and English** user interface.
+- Supported formats: JPEG, TIFF, PNG (HEIC depending on the macOS version).
 
 ## Installation
 
-### Variante A: Fertige App aus GitHub Actions
+### Download
 
-1. Im Repository unter **Actions → Build & Test** den letzten erfolgreichen Lauf öffnen.
-2. Das Artefakt **EXIF-Data-Manager** herunterladen und entpacken.
-3. Die App ist nicht notarisiert. Beim ersten Start daher **Rechtsklick → Öffnen** wählen,
-   oder unter *Systemeinstellungen → Datenschutz & Sicherheit* „Dennoch öffnen“ klicken.
+1. Download the latest **EXIF Data Manager (macOS).zip** from
+   [Releases](https://github.com/zulu101/EXIFdatamanager/releases) and unzip it.
+2. Move **EXIF Data Manager.app** to your *Applications* folder.
+3. The app is not notarized by Apple. On first launch macOS will block it:
+   open *System Settings → Privacy & Security*, scroll down and click **Open Anyway**.
 
-### Variante B: Selbst bauen
+### Build it yourself
 
-Voraussetzung: macOS 14 (Sonoma) oder neuer und Xcode (oder die Command Line Tools).
+Requirements: macOS 14 (Sonoma) or later and Xcode (or the Command Line Tools).
 
 ```bash
 git clone https://github.com/zulu101/EXIFdatamanager.git
@@ -97,33 +82,77 @@ git clone https://github.com/zulu101/EXIFdatamanager.git
 cd EXIFdatamanager && ./scripts/build-app.sh
 ```
 
-Die App liegt danach unter `build/EXIF Data Manager.app` und kann in den Programme-Ordner
-gezogen werden.
+The app is created at `build/EXIF Data Manager.app`.
 
-Zum Entwickeln lässt sich das Projekt direkt in Xcode öffnen (`open Package.swift`) oder mit
-`swift run` starten. Tests: `swift test`.
+## Usage
 
-## Bedienung
+1. Drag photos or entire folders into the window (or press ⌘O).
+2. Select a photo and enter the date, place, people and description on the right.
+3. Use ⌘↑ / ⌘↓ to move to the previous/next photo.
+4. **⌘S** writes all changes to the files. An orange dot in the list marks unsaved changes; a green
+   checkmark means date and place are filled in.
 
-1. Fotos oder ganze Ordner ins Fenster ziehen (oder ⌘O).
-2. Foto in der Liste auswählen und rechts Datum, Ort, Personen und Beschreibung eintragen.
-3. Mit ⌘↑ / ⌘↓ zum vorherigen/nächsten Foto wechseln.
-4. **⌘S** schreibt alle Änderungen in die Dateien. Ein orangefarbener Punkt in der Liste zeigt
-   ungespeicherte Änderungen, ein grüner Haken: Datum und Ort sind eingetragen.
+## Where is the data stored?
 
-## Tipps zur Langzeit-Archivierung
+| Detail | Stored in |
+| --- | --- |
+| Date taken | EXIF `DateTimeOriginal` (always complete; missing parts become January 1 / 00:00) and XMP `photoshop:DateCreated` (with the real precision, e.g. `1985` or `1985-07`) |
+| Coordinates | EXIF GPS (`GPSLatitude`/`GPSLongitude` + ref) |
+| Place name | XMP `Iptc4xmpCore:Location` (IPTC Sublocation) |
+| City / region / country | XMP `photoshop:City` / `photoshop:State` / `photoshop:Country` |
+| People | XMP `Iptc4xmpExt:PersonInImage` **and** as keywords in `dc:subject` |
+| Face frames | XMP `mwg-rs:Regions` (Metadata Working Group, type “Face”) **and** `Iptc4xmpExt:ImageRegion` (IPTC, content type “human”, with “Person shown”) |
+| Keywords | XMP `dc:subject` |
+| Description | EXIF `ImageDescription` / XMP `dc:description` |
 
-- Die Beschreibung ist das wertvollste Feld: Anlass, wer wo steht, kleine Geschichten.
-- Wenn das Datum unsicher ist, lieber „nur Jahr“ wählen und z. B. „ca. 1975“ in die Beschreibung
-  schreiben.
-- Weiterhin regelmäßig Backups machen (z. B. Time Machine und eine Kopie außer Haus).
+People are also stored as keywords because many apps (including Apple Photos) don’t show the IPTC
+“Person shown” field, but they do show keywords.
 
-## Projektaufbau
+### Faces
+
+Frames and names are stored in **two open standards** so that as many apps as possible can read them:
+MWG regions (e.g. Lightroom Classic, digiKam, ExifTool) and IPTC image regions (official IPTC standard
+since 2019). As required by the MWG standard, coordinates refer to the stored, unrotated image; rotated
+photos are converted correctly. Regions of other kinds written by other apps (e.g. pets) are preserved.
+Every build verifies the written regions with [ExifTool](https://exiftool.org).
+
+Automatic detection only finds *where* faces are. For name suggestions, the app compares image crops with
+faces you have already named in the loaded photos. This comparison data only exists in memory and is
+**never** stored – only frames and names end up in the files. Apple Photos does not show the frames, but
+imports the names as keywords.
+
+**Limitation:** face frames are not stored in PNG files, because Apple’s ImageIO did not write the nested
+XMP structures reliably there. Names are still stored.
+
+## Tips for long-term archiving
+
+- The description is the most valuable field: the occasion, who is standing where, little stories.
+- If you’re unsure about the date, choose “year only” and write e.g. “approx. 1975” in the description.
+- Keep making backups (e.g. Time Machine plus an off-site copy).
+
+## Language
+
+The app follows the macOS language by default. You can change it in the app settings (⌘,) under
+*Language*, or – like any Mac app – in *System Settings → General → Language & Region → Applications*.
+
+## Development
 
 ```
-Sources/ExifCore/          Metadaten lesen/schreiben (ImageIO), ohne Oberfläche, getestet
-Sources/ExifDataManager/   SwiftUI-App
-Tests/ExifCoreTests/       Tests inkl. Schreib-/Lese-Durchlauf mit echten JPEG/TIFF/PNG
-scripts/build-app.sh       Baut das .app-Bundle (inkl. Icon)
-Resources/AppIcon.svg      App-Icon (Quelle), AppIcon.png = gerenderte 1024-px-Version
+Sources/ExifCore/          Reading/writing metadata (ImageIO), no UI, unit-tested
+Sources/ExifDataManager/   SwiftUI app
+Tests/ExifCoreTests/       Tests incl. write/read round trips with real JPEG/TIFF/PNG files
+Resources/                 App icon and translations (Localization/<lang>.lproj)
+scripts/                   Build script and CI checks
 ```
+
+- Open the project in Xcode with `open Package.swift`, or run it with `swift run`. Tests: `swift test`.
+- When launched from Xcode or with `swift run`, the UI is always German; translations are only copied into
+  the app bundle by `scripts/build-app.sh`.
+- German texts in the source code double as localization keys. English translations live in
+  `Resources/Localization/en.lproj/Localizable.strings`; `scripts/check_localization.py` (also run in CI)
+  makes sure every text has a translation.
+- Releases: pushing a tag like `v1.0.0` builds the app and publishes it on the Releases page.
+
+## License
+
+[MIT](LICENSE)
