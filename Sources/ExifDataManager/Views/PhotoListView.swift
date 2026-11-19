@@ -88,7 +88,9 @@ struct PhotoRow: View {
         if let date = item.edited.date { parts.append(date.displayString) }
         let place = item.edited.placeSummary
         if !place.isEmpty { parts.append(place) }
-        return parts.isEmpty ? (item.isLoaded ? "Noch keine Angaben" : "Wird geladen …") : parts.joined(separator: " · ")
+        return parts.isEmpty
+            ? (item.isLoaded ? String(localized: "Noch keine Angaben") : String(localized: "Wird geladen …"))
+            : parts.joined(separator: " · ")
     }
 
     @ViewBuilder

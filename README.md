@@ -28,6 +28,20 @@ Programme lesen – unabhängig von dieser App.
     alle Angaben. Fehlt etwas, bleibt das Original unverändert und es erscheint eine Meldung.
 - Unterstützte Formate: JPEG, TIFF, PNG (HEIC je nach macOS-Version).
 
+## Sprache / Language
+
+Die App gibt es auf **Deutsch** und **Englisch**. Standardmäßig folgt sie der Sprache von macOS.
+Umstellen lässt sie sich in den Einstellungen der App (⌘,) unter „Sprache“ oder – wie bei jeder
+Mac-App – unter *Systemeinstellungen → Allgemein → Sprache & Region → Apps*.
+
+The app is available in **German** and **English** and follows the macOS language by default. You can
+change it in the app settings (⌘,) under “Language”.
+
+Übersetzungen liegen in `Resources/Localization/<Sprache>.lproj/Localizable.strings`. Die deutschen
+Texte im Code sind zugleich die Schlüssel. `scripts/check_localization.py` prüft, ob jeder Text eine
+englische Übersetzung hat (läuft auch im CI). Beim Start direkt aus Xcode bzw. per `swift run` ist die
+Oberfläche immer deutsch; die Übersetzungen werden erst ins gebaute App-Bundle kopiert.
+
 ## Wo landen die Daten in der Datei?
 
 | Angabe | Gespeichert in |

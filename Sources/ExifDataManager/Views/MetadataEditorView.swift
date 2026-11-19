@@ -90,7 +90,9 @@ struct DateEditor: View {
                     .foregroundStyle(.secondary)
             }
             if current.precision == .year || current.precision == .month {
-                Text("Programme ohne Teil-Datums-Unterstützung (z. B. Apple Fotos) zeigen den \(current.precision == .year ? "1. Januar" : "1. des Monats") an. Die tatsächliche Genauigkeit bleibt in der Datei gespeichert.")
+                Text(current.precision == .year
+                     ? "Programme ohne Teil-Datums-Unterstützung (z. B. Apple Fotos) zeigen den 1. Januar an. Die tatsächliche Genauigkeit bleibt in der Datei gespeichert."
+                     : "Programme ohne Teil-Datums-Unterstützung (z. B. Apple Fotos) zeigen den 1. des Monats an. Die tatsächliche Genauigkeit bleibt in der Datei gespeichert." as LocalizedStringKey)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

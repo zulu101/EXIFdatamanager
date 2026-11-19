@@ -12,11 +12,11 @@ public enum DatePrecision: String, CaseIterable, Identifiable, Sendable {
 
     public var label: String {
         switch self {
-        case .unknown: return "Unbekannt"
-        case .year: return "Nur Jahr"
-        case .month: return "Monat & Jahr"
-        case .day: return "Genauer Tag"
-        case .dateTime: return "Tag & Uhrzeit"
+        case .unknown: return String(localized: "Unbekannt")
+        case .year: return String(localized: "Nur Jahr")
+        case .month: return String(localized: "Monat & Jahr")
+        case .day: return String(localized: "Genauer Tag")
+        case .dateTime: return String(localized: "Tag & Uhrzeit")
         }
     }
 

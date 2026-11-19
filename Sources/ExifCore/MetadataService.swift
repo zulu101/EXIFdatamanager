@@ -10,11 +10,11 @@ public enum MetadataError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .cannotRead(let url):
-            return "„\(url.lastPathComponent)“ konnte nicht gelesen werden."
+            return String(localized: "„\(url.lastPathComponent)“ konnte nicht gelesen werden.")
         case .unsupportedFormat(let url):
-            return "Das Dateiformat von „\(url.lastPathComponent)“ kann nicht beschrieben werden."
+            return String(localized: "Das Dateiformat von „\(url.lastPathComponent)“ kann nicht beschrieben werden.")
         case .writeFailed(let url, let reason):
-            return "„\(url.lastPathComponent)“ konnte nicht gespeichert werden: \(reason)"
+            return String(localized: "„\(url.lastPathComponent)“ konnte nicht gespeichert werden: \(reason)")
         }
     }
 }
@@ -218,13 +218,13 @@ public enum MetadataService {
             // werden daher mit expliziten Angaben neu geschrieben (Pixel bleiben identisch).
             guard CGImageSourceGetCount(source) == 1,
                   let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-                throw fail("Mehrseitige bzw. animierte Bilddateien werden nicht unterstützt.")
+                throw fail(String(localized: "Mehrseitige bzw. animierte Bilddateien werden nicht unterstützt."))
             }
             let properties = updatedProperties(
                 CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] ?? [:], with: m)
             CGImageDestinationAddImageAndMetadata(destination, image, meta, properties as CFDictionary)
             guard CGImageDestinationFinalize(destination) else {
-                throw fail("Die Datei konnte nicht geschrieben werden.")
+                throw fail(String(localized: "Die Datei konnte nicht geschrieben werden."))
             }
         case .copy:
             let options: [String: Any] = [
@@ -236,7 +236,7 @@ public enum MetadataService {
             var error: Unmanaged<CFError>?
             guard CGImageDestinationCopyImageSource(destination, source, options as CFDictionary, &error) else {
                 let reason = error.map { ($0.takeRetainedValue() as Error).localizedDescription }
-                    ?? "Das Format unterstützt das verlustfreie Schreiben von Metadaten nicht."
+                    ?? String(localized: "Das Format unterstützt das verlustfreie Schreiben von Metadaten nicht.")
                 throw fail(reason)
             }
         }
@@ -245,14 +245,14 @@ public enum MetadataService {
         guard let check = CGImageSourceCreateWithURL(tmp as CFURL, nil),
               CGImageSourceGetCount(check) == CGImageSourceGetCount(source),
               pixelSize(check) == pixelSize(source) else {
-            throw fail("Die neu geschriebene Datei war fehlerhaft. Das Original wurde nicht verändert.")
+            throw fail(String(localized: "Die neu geschriebene Datei war fehlerhaft. Das Original wurde nicht verändert."))
         }
 
         // Inhaltliche Prüfung: Steht wirklich alles in der neuen Datei? Erst dann darf sie das
         // Original ersetzen – sonst bleibt es unverändert.
         let missing = expected.differences(from: read(source: check))
         guard missing.isEmpty else {
-            throw fail("Diese Angaben wären nicht korrekt gespeichert worden: \(missing.joined(separator: ", ")). Das Original wurde nicht verändert.")
+            throw fail(String(localized: "Diese Angaben wären nicht korrekt gespeichert worden: \(missing.joined(separator: ", ")). Das Original wurde nicht verändert."))
         }
         return tmp
     }

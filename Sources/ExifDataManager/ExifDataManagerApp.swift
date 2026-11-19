@@ -65,11 +65,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let model, model.hasUnsavedChanges else { return .terminateNow }
 
         let alert = NSAlert()
-        alert.messageText = "Ungespeicherte Änderungen"
-        alert.informativeText = "\(model.dirtyItems.count) Foto(s) haben Änderungen, die noch nicht in die Dateien geschrieben wurden."
-        alert.addButton(withTitle: "Speichern")
-        alert.addButton(withTitle: "Nicht speichern")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.messageText = String(localized: "Ungespeicherte Änderungen")
+        alert.informativeText = String(localized: "\(model.dirtyItems.count) Foto(s) haben Änderungen, die noch nicht in die Dateien geschrieben wurden.")
+        alert.addButton(withTitle: String(localized: "Speichern"))
+        alert.addButton(withTitle: String(localized: "Nicht speichern"))
+        alert.addButton(withTitle: String(localized: "Abbrechen"))
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:

@@ -157,7 +157,7 @@ private struct FaceBox: View {
     }
 
     private var label: String {
-        let name = face.name.isEmpty ? (hasSuggestion ? "?" : "Unbekannt") : face.name
+        let name = face.name.isEmpty ? (hasSuggestion ? "?" : String(localized: "Unbekannt")) : face.name
         return "\(number)  \(name)"
     }
 }

@@ -21,6 +21,11 @@ rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp "$BIN_PATH" "$APP_DIR/Contents/MacOS/$EXECUTABLE"
 
+echo "▸ Kopiere Übersetzungen …"
+for lproj in Resources/Localization/*.lproj; do
+    cp -R "$lproj" "$APP_DIR/Contents/Resources/"
+done
+
 echo "▸ Erzeuge App-Icon …"
 ICONSET="$BUILD_DIR/AppIcon.iconset"
 rm -rf "$ICONSET"
@@ -56,6 +61,11 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
     <string>$VERSION</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>de</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>de</string>
+        <string>en</string>
+    </array>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSApplicationCategoryType</key>

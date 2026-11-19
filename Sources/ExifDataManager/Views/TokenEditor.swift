@@ -4,7 +4,7 @@ import SwiftUI
 struct TokenEditor: View {
     @Binding var values: [String]
     let store: SuggestionStore
-    let placeholder: String
+    let placeholder: LocalizedStringKey
 
     @State private var input = ""
     @FocusState private var focused: Bool

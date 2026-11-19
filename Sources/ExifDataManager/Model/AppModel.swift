@@ -39,8 +39,8 @@ final class AppModel {
 
     func showOpenPanel() {
         let panel = NSOpenPanel()
-        panel.title = "Fotos oder Ordner auswählen"
-        panel.prompt = "Hinzufügen"
+        panel.title = String(localized: "Fotos oder Ordner auswählen")
+        panel.prompt = String(localized: "Hinzufügen")
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
@@ -158,7 +158,7 @@ final class AppModel {
                     item.faceSuggestions = [:]
                 } else {
                     item.edited = metadata
-                    item.saveWarning = "Nicht korrekt gespeichert: " + diffs.joined(separator: ", ")
+                    item.saveWarning = String(localized: "Nicht korrekt gespeichert: \(diffs.joined(separator: ", "))")
                     failures.append("\(item.fileName): \(item.saveWarning!)")
                 }
                 learn(from: metadata)
@@ -215,11 +215,11 @@ extension AppModel {
 
         var message: String
         switch added {
-        case 0: message = "Keine neuen Gesichter gefunden."
-        case 1: message = "1 Gesicht gefunden."
-        default: message = "\(added) Gesichter gefunden."
+        case 0: message = String(localized: "Keine neuen Gesichter gefunden.")
+        case 1: message = String(localized: "1 Gesicht gefunden.")
+        default: message = String(localized: "\(added) Gesichter gefunden.")
         }
-        if failed > 0 { message += " \(failed) Foto(s) konnten nicht analysiert werden." }
+        if failed > 0 { message += " " + String(localized: "\(failed) Foto(s) konnten nicht analysiert werden.") }
         return message
     }
 
@@ -227,7 +227,7 @@ extension AppModel {
     /// bereits benannten Gesichtern in allen geladenen Fotos.
     func suggestNames(for item: PhotoItem) async -> String {
         let unnamed = item.edited.faces.filter { $0.name.isEmpty }
-        guard !unnamed.isEmpty else { return "Alle Gesichter haben bereits einen Namen." }
+        guard !unnamed.isEmpty else { return String(localized: "Alle Gesichter haben bereits einen Namen.") }
         guard !isAnalyzingFaces else { return "" }
         isAnalyzingFaces = true
         faceProgress = 0
@@ -245,7 +245,7 @@ extension AppModel {
             faceProgress = Double(index + 1) / Double(sources.count + 1)
         }
         guard Set(references.map(\.name)).count >= 2 else {
-            return "Für Vorschläge müssen zuerst mindestens zwei verschiedene Personen auf geladenen Fotos benannt sein."
+            return String(localized: "Für Vorschläge müssen zuerst mindestens zwei verschiedene Personen auf geladenen Fotos benannt sein.")
         }
 
         let queries = await featurePrints(for: item, faces: unnamed)
@@ -257,8 +257,8 @@ extension AppModel {
         }
         faceProgress = 1
         return count == 0
-            ? "Keine sicheren Vorschläge gefunden."
-            : "\(count) Vorschlag/Vorschläge – bitte prüfen und mit Klick übernehmen."
+            ? String(localized: "Keine sicheren Vorschläge gefunden.")
+            : String(localized: "\(count) Vorschlag/Vorschläge – bitte prüfen und mit Klick übernehmen.")
     }
 
     private func image(for item: PhotoItem) async -> CGImage? {

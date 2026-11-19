@@ -35,7 +35,7 @@ struct ActionBar<Leading: View, Trailing: View>: View {
         .overlay(alignment: .top) { Divider() }
     }
 
-    private var saveTitle: String {
+    private var saveTitle: LocalizedStringKey {
         let count = model.dirtyItems.count
         return count > 1 ? "Alle speichern (\(count))" : "Speichern"
     }
@@ -52,7 +52,8 @@ struct ActionBar<Leading: View, Trailing: View>: View {
             .font(.callout)
             .foregroundStyle(.secondary)
         } else if count > 0 {
-            Label(count == 1 ? "1 Foto ungespeichert" : "\(count) Fotos ungespeichert", systemImage: "circle.fill")
+            Label(count == 1 ? "1 Foto ungespeichert" : "\(count) Fotos ungespeichert" as LocalizedStringKey,
+                  systemImage: "circle.fill")
                 .font(.callout)
                 .foregroundStyle(.orange)
                 .labelStyle(StatusLabelStyle())

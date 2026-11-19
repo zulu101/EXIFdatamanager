@@ -67,16 +67,16 @@ public struct PhotoMetadata: Equatable, Sendable {
     /// Welche Felder unterscheiden sich (für die Kontrolle nach dem Speichern)?
     public func differences(from other: PhotoMetadata) -> [String] {
         var d: [String] = []
-        if date != other.date { d.append("Datum") }
-        if !coordinatesMatch(other) { d.append("Koordinaten") }
-        if location != other.location { d.append("Ortsbezeichnung") }
-        if city != other.city { d.append("Stadt") }
-        if state != other.state { d.append("Region") }
-        if country != other.country { d.append("Land") }
-        if Set(people) != Set(other.people) { d.append("Personen") }
-        if Set(keywords) != Set(other.keywords) { d.append("Schlagwörter") }
-        if caption != other.caption { d.append("Beschreibung") }
-        if !facesMatch(other) { d.append("Gesichter") }
+        if date != other.date { d.append(String(localized: "Datum")) }
+        if !coordinatesMatch(other) { d.append(String(localized: "Koordinaten")) }
+        if location != other.location { d.append(String(localized: "Ortsbezeichnung")) }
+        if city != other.city { d.append(String(localized: "Stadt")) }
+        if state != other.state { d.append(String(localized: "Region")) }
+        if country != other.country { d.append(String(localized: "Land")) }
+        if Set(people) != Set(other.people) { d.append(String(localized: "Personen")) }
+        if Set(keywords) != Set(other.keywords) { d.append(String(localized: "Schlagwörter")) }
+        if caption != other.caption { d.append(String(localized: "Beschreibung")) }
+        if !facesMatch(other) { d.append(String(localized: "Gesichter")) }
         return d
     }
 

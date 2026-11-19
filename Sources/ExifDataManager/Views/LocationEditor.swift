@@ -45,7 +45,7 @@ struct LocationEditor: View {
                         select(item)
                     } label: {
                         VStack(alignment: .leading) {
-                            Text(item.name ?? "Unbenannt")
+                            Text(item.name ?? String(localized: "Unbenannt"))
                             Text(item.placemark.title ?? "")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -146,10 +146,10 @@ struct LocationEditor: View {
         do {
             let response = try await MKLocalSearch(request: request).start()
             results = response.mapItems
-            if results.isEmpty { searchError = "Nichts gefunden." }
+            if results.isEmpty { searchError = String(localized: "Nichts gefunden.") }
         } catch {
             results = []
-            searchError = "Suche fehlgeschlagen: \(error.localizedDescription)"
+            searchError = String(localized: "Suche fehlgeschlagen: \(error.localizedDescription)")
         }
     }
 
