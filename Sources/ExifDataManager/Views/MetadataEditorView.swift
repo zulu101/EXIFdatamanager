@@ -23,6 +23,8 @@ struct MetadataEditorView: View {
                 LocationEditor(metadata: $item.edited)
             }
 
+            FacesSection(item: item)
+
             Section {
                 TokenEditor(values: $item.edited.people, store: model.people,
                             placeholder: "Name eingeben und ⏎ drücken")

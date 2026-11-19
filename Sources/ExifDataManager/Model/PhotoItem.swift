@@ -17,6 +17,14 @@ final class PhotoItem: Identifiable {
     var saveWarning: String?
     var thumbnail: NSImage?
 
+    // Nur für die Oberfläche, wird nicht gespeichert:
+    /// Großes Vorschaubild (nur solange das Foto angezeigt wird).
+    var previewImage: CGImage?
+    /// Ausgewählter Gesichtsrahmen.
+    var selectedFaceID: UUID?
+    /// Namensvorschläge für unbenannte Gesichter (experimentell).
+    var faceSuggestions: [UUID: String] = [:]
+
     init(url: URL) {
         self.url = url
     }
@@ -26,6 +34,25 @@ final class PhotoItem: Identifiable {
 
     func revert() {
         edited = original
+        faceSuggestions = [:]
+        selectedFaceID = nil
+    }
+
+    /// Gesicht benennen und die Person auch in die Personenliste aufnehmen.
+    func name(face id: UUID, as name: String) {
+        guard let index = edited.faces.firstIndex(where: { $0.id == id }) else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        edited.faces[index].name = trimmed
+        faceSuggestions[id] = nil
+        if !trimmed.isEmpty && !edited.people.contains(trimmed) {
+            edited.people.append(trimmed)
+        }
+    }
+
+    func removeFace(_ id: UUID) {
+        edited.faces.removeAll { $0.id == id }
+        faceSuggestions[id] = nil
+        if selectedFaceID == id { selectedFaceID = nil }
     }
 
     func load() async {

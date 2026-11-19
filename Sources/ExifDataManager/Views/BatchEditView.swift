@@ -14,6 +14,7 @@ struct BatchEditView: View {
     @State private var addKeywords: [String] = []
     @State private var applyCaption = false
     @State private var caption = ""
+    @State private var faceMessage: String?
 
     var body: some View {
         Form {
@@ -54,6 +55,32 @@ struct BatchEditView: View {
                 if applyPlace {
                     LocationEditor(metadata: $place)
                 }
+            }
+
+            Section {
+                HStack {
+                    Button {
+                        Task { faceMessage = await model.detectFaces(in: items) }
+                    } label: {
+                        Label("Gesichter in \(items.count) Fotos erkennen", systemImage: "person.crop.rectangle.stack")
+                    }
+                    .disabled(model.isAnalyzingFaces)
+                    if model.isAnalyzingFaces {
+                        ProgressView(value: model.faceProgress)
+                            .frame(width: 120)
+                    }
+                }
+                if let faceMessage {
+                    Text(faceMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Gesichter")
+            } footer: {
+                Text("Markiert gefundene Gesichter sofort mit einem Rahmen (ohne Namen). Benennen kannst du sie anschließend in der Einzelansicht.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Personen hinzufügen") {

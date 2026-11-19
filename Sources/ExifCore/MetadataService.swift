@@ -110,6 +110,11 @@ public enum MetadataService {
         m.people = people
         m.keywords = subject.filter { !people.contains($0) }
 
+        // Gesichtsregionen (MWG + IPTC)
+        let geometry = imageGeometry(props)
+        m.faces = RegionMetadata.read(RegionMetadata.topLevelFields(xmp),
+                                      orientation: geometry.orientation, storedSize: geometry.size).faces
+
         return m.normalized()
     }
 
@@ -134,6 +139,17 @@ public enum MetadataService {
             meta = CGImageMetadataCreateMutable()
         }
         apply(m, to: meta)
+
+        // Gesichtsregionen: nur anfassen, wenn es welche gibt oder gab.
+        let sourceProps = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] ?? [:]
+        let geometry = imageGeometry(sourceProps)
+        let existing = RegionMetadata.read(RegionMetadata.topLevelFields(meta),
+                                           orientation: geometry.orientation, storedSize: geometry.size)
+        if !m.faces.isEmpty || !existing.isEmpty {
+            let fields = RegionMetadata.fields(for: m.faces, preserving: existing,
+                                               orientation: geometry.orientation, storedSize: geometry.size)
+            RegionMetadata.replace(in: meta, with: fields)
+        }
 
         let tmp = url.deletingLastPathComponent()
             .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString).tmp")
@@ -397,6 +413,14 @@ public enum MetadataService {
         if parts.count > 1 { value += parts[1] / 60 }
         if parts.count > 2 { value += parts[2] / 3600 }
         return (ref == "S" || ref == "W") ? -value : value
+    }
+
+    /// EXIF-Orientierung und Größe des gespeicherten (ungedrehten) Bildes.
+    static func imageGeometry(_ props: [String: Any]) -> (orientation: Int, size: CGSize) {
+        let orientation = (props[kCGImagePropertyOrientation as String] as? Int) ?? 1
+        let width = props[kCGImagePropertyPixelWidth as String] as? Int ?? 0
+        let height = props[kCGImagePropertyPixelHeight as String] as? Int ?? 0
+        return ((1...8).contains(orientation) ? orientation : 1, CGSize(width: width, height: height))
     }
 
     private static func pixelSize(_ source: CGImageSource) -> [Int] {

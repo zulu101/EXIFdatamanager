@@ -13,6 +13,9 @@ Programme lesen – unabhängig von dieser App.
 - **Aufnahmeort:** Ortssuche, Klick in die Karte, automatische Ermittlung von Stadt/Region/Land,
   eigene Ortsbezeichnung (z. B. „Haus der Großeltern“) und eine Liste zuletzt verwendeter Orte.
 - **Personen:** Namen werden gemerkt und beim nächsten Foto vorgeschlagen.
+- **Gesichter markieren:** Rahmen mit der Maus aufziehen und benennen, oder Gesichter automatisch
+  erkennen lassen (lokal auf dem Mac, mit Apples Vision-Framework). Experimentell: Namensvorschläge
+  anhand bereits benannter Gesichter.
 - **Beschreibung und Schlagwörter.**
 - **Stapelbearbeitung:** Mehrere Fotos auswählen (⇧/⌘-Klick) und Datum, Ort, Personen usw.
   auf einmal setzen – ideal für einen ganzen Film.
@@ -33,11 +36,25 @@ Programme lesen – unabhängig von dieser App.
 | Ortsbezeichnung | XMP `Iptc4xmpCore:Location` (IPTC Sublocation) |
 | Stadt / Region / Land | XMP `photoshop:City` / `photoshop:State` / `photoshop:Country` |
 | Personen | XMP `Iptc4xmpExt:PersonInImage` **und** als Schlagwort in `dc:subject` |
+| Gesichtsrahmen | XMP `mwg-rs:Regions` (Metadata Working Group, Typ „Face“) **und** `Iptc4xmpExt:ImageRegion` (IPTC, Inhaltstyp „human“, mit „Person im Bild“) |
 | Schlagwörter | XMP `dc:subject` |
 | Beschreibung | EXIF `ImageDescription` / XMP `dc:description` |
 
 Personen werden zusätzlich als Schlagwort gespeichert, weil viele Programme (u. a. Apple Fotos)
 das IPTC-Feld „Person im Bild“ nicht anzeigen, Schlagwörter aber schon.
+
+### Gesichter
+
+Rahmen und Namen werden in **zwei offenen Standards** gespeichert, damit möglichst viele Programme
+sie lesen können: MWG-Regionen (z. B. Lightroom Classic, digiKam, ExifTool) und IPTC-Bildregionen
+(offizieller IPTC-Standard seit 2019). Die Koordinaten beziehen sich – wie vom MWG-Standard
+verlangt – auf das gespeicherte, ungedrehte Bild; gedrehte Fotos werden korrekt umgerechnet.
+Regionen anderer Art aus anderen Programmen (z. B. Haustiere) bleiben erhalten.
+
+Die automatische Erkennung findet nur, *wo* Gesichter sind. Für Namensvorschläge vergleicht die App
+Bildausschnitte mit bereits benannten Gesichtern der geladenen Fotos. Diese Vergleichsdaten werden
+nur im Arbeitsspeicher berechnet und **nie** gespeichert – in der Datei landen ausschließlich
+Rahmen und Namen. Apple Fotos zeigt die Rahmen nicht an, übernimmt aber die Namen als Schlagwörter.
 
 Der vom Scanner gesetzte Zeitpunkt der Digitalisierung (`DateTimeDigitized`) und andere vorhandene
 Angaben bleiben unverändert.

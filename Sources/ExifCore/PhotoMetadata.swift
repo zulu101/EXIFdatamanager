@@ -19,6 +19,8 @@ public struct PhotoMetadata: Equatable, Sendable {
     public var keywords: [String] = []
     /// Beschreibung / Bildunterschrift.
     public var caption: String = ""
+    /// Markierte Gesichter (MWG-Regionen und IPTC-Bildregionen).
+    public var faces: [FaceRegion] = []
 
     public init() {}
 
@@ -47,7 +49,13 @@ public struct PhotoMetadata: Equatable, Sendable {
         m.state = trim(state)
         m.country = trim(country)
         m.caption = trim(caption)
-        m.people = PhotoMetadata.unique(people.map(trim))
+        m.faces = faces.compactMap { face -> FaceRegion? in
+            var f = face
+            f.name = trim(face.name)
+            return f.clamped()
+        }
+        // Benannte Gesichter gehören immer auch in die Personenliste.
+        m.people = PhotoMetadata.unique((people + m.faces.map(\.name)).map(trim))
         m.keywords = PhotoMetadata.unique(keywords.map(trim)).filter { !m.people.contains($0) }
         if latitude == nil || longitude == nil {
             m.latitude = nil
@@ -68,6 +76,7 @@ public struct PhotoMetadata: Equatable, Sendable {
         if Set(people) != Set(other.people) { d.append("Personen") }
         if Set(keywords) != Set(other.keywords) { d.append("Schlagwörter") }
         if caption != other.caption { d.append("Beschreibung") }
+        if !facesMatch(other) { d.append("Gesichter") }
         return d
     }
 
@@ -80,6 +89,16 @@ public struct PhotoMetadata: Equatable, Sendable {
         default:
             return false
         }
+    }
+
+    private func facesMatch(_ other: PhotoMetadata) -> Bool {
+        guard faces.count == other.faces.count else { return false }
+        var remaining = other.faces
+        for face in faces {
+            guard let index = remaining.firstIndex(of: face) else { return false }
+            remaining.remove(at: index)
+        }
+        return true
     }
 
     static func unique(_ values: [String]) -> [String] {
