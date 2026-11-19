@@ -162,21 +162,23 @@ public enum MetadataService {
             throw MetadataError.unsupportedFormat(url)
         }
 
-        let isTIFF = UTType(type as String)?.conforms(to: .tiff) ?? false
-        if isTIFF {
-            // TIFF: `CopyImageSource` legt dort keinen GPS-Block an. TIFF ist verlustfrei, daher
-            // schreiben wir das Bild mit expliziten EXIF/GPS-Angaben neu (Pixel bleiben identisch).
+        let utType = UTType(type as String)
+        let isLossless = (utType?.conforms(to: .tiff) ?? false) || (utType?.conforms(to: .png) ?? false)
+        if isLossless {
+            // TIFF und PNG: `CopyImageSource` legt bei TIFF keinen GPS-Block an und übernimmt bei
+            // PNG mit vorhandenem XMP die Änderungen nicht. Beide Formate sind verlustfrei, daher
+            // schreiben wir das Bild mit expliziten Angaben neu (Pixel bleiben identisch).
             guard CGImageSourceGetCount(source) == 1,
                   let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
                 try? FileManager.default.removeItem(at: tmp)
-                throw MetadataError.writeFailed(url, "Mehrseitige TIFF-Dateien werden nicht unterstützt.")
+                throw MetadataError.writeFailed(url, "Mehrseitige bzw. animierte Bilddateien werden nicht unterstützt.")
             }
             let properties = updatedProperties(
                 CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] ?? [:], with: m)
             CGImageDestinationAddImageAndMetadata(destination, image, meta, properties as CFDictionary)
             guard CGImageDestinationFinalize(destination) else {
                 try? FileManager.default.removeItem(at: tmp)
-                throw MetadataError.writeFailed(url, "Die TIFF-Datei konnte nicht geschrieben werden.")
+                throw MetadataError.writeFailed(url, "Die Datei konnte nicht geschrieben werden.")
             }
         } else {
             let options: [String: Any] = [
@@ -428,10 +430,10 @@ public enum MetadataService {
         return (ref == "S" || ref == "W") ? -value : value
     }
 
-    /// Gesichtsrahmen werden nur in Formaten gespeichert, in denen ImageIO die verschachtelten
-    /// XMP-Strukturen zuverlässig schreibt. Bei PNG gingen in Tests dabei alle XMP-Daten verloren.
+    /// Formate, in denen Gesichtsrahmen gespeichert werden. Derzeit alle unterstützten Formate;
+    /// die Prüfung vor dem Ersetzen verhindert in jedem Fall Datenverlust.
     public static func supportsFaceRegions(type: String) -> Bool {
-        !(UTType(type)?.conforms(to: .png) ?? false)
+        true
     }
 
     public static func supportsFaceRegions(url: URL) -> Bool {

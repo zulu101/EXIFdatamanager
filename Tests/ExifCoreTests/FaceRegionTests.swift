@@ -119,19 +119,18 @@ final class FaceRegionTests: XCTestCase {
 
     func testJPEGFaces() throws { try roundtrip(.jpeg, ext: "jpg") }
     func testTIFFFaces() throws { try roundtrip(.tiff, ext: "tif") }
-    func testPNGKeepsNamesButSkipsRegions() throws {
-        // PNG: Rahmen werden nicht geschrieben (ImageIO verliert dort XMP), die Namen aber schon.
+    func testPNGFaces() throws { try roundtrip(.png, ext: "png") }
+
+    func testPNGWithExistingXMPCanBeEditedRepeatedly() throws {
+        // Regression: PNGs mit vorhandenem XMP (hier: Orientierung) übernahmen Änderungen nicht.
         let url = makeImage(.png, ext: "png")
-        var m = PhotoMetadata()
-        m.caption = "Test"
-        m.faces = sampleFaces()
-        try MetadataService.write(m, to: url)
-        let read = try MetadataService.read(from: url)
-        XCTAssertEqual(read.faces, [])
-        XCTAssertEqual(read.people, ["Erika Mustermann"])
-        XCTAssertEqual(read.caption, "Test")
-        XCTAssertFalse(MetadataService.supportsFaceRegions(url: url))
-        XCTAssertTrue(MetadataService.supportsFaceRegions(url: URL(fileURLWithPath: "/x/scan.jpg")))
+        for caption in ["Erste Beschreibung", "Zweite Beschreibung"] {
+            var m = try MetadataService.read(from: url)
+            m.caption = caption
+            m.people = ["Erika Mustermann"]
+            try MetadataService.write(m, to: url)
+            XCTAssertEqual(try MetadataService.read(from: url).caption, caption)
+        }
     }
 
     func testRotatedImageStoresUnrotatedCoordinates() throws {
