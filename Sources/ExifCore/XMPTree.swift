@@ -197,12 +197,12 @@ public enum XMP {
             .map { " xmlns:\($0.value)=\"\(escape($0.key))\"" }
             .joined()
         let body = fields.map { xml(for: $0, prefixes) }.joined()
-        let xml = """
+        let packet = """
         <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="\(rdf)">\
         <rdf:Description rdf:about=""\(declarations)>\(body)</rdf:Description>\
         </rdf:RDF></x:xmpmeta>
         """
-        return (Data(xml.utf8), prefixes)
+        return (Data(packet.utf8), prefixes)
     }
 
     private static func xml(for field: XMPField, _ prefixes: [String: String]) -> String {
