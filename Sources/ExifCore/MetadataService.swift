@@ -156,31 +156,77 @@ public enum MetadataService {
             RegionMetadata.replace(in: meta, with: fields)
         }
 
+        // Schreibwege je Format. Bei PNG verhält sich ImageIO je nach Datei unterschiedlich,
+        // daher werden dort beide Wege probiert – übernommen wird nur ein vollständig korrektes
+        // Ergebnis.
+        let utType = UTType(type as String)
+        let strategies: [WriteStrategy]
+        if utType?.conforms(to: .tiff) ?? false {
+            strategies = [.reencode]
+        } else if utType?.conforms(to: .png) ?? false {
+            strategies = [.copy, .reencode]
+        } else {
+            strategies = [.copy]
+        }
+
+        var lastError: Error = MetadataError.unsupportedFormat(url)
+        var written: URL?
+        for strategy in strategies {
+            do {
+                written = try attempt(strategy, source: source, type: type, meta: meta,
+                                      metadata: m, expected: expected, url: url)
+                break
+            } catch {
+                lastError = error
+            }
+        }
+        guard let tmp = written else { throw lastError }
+
+        do {
+            _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
+        } catch {
+            try? FileManager.default.removeItem(at: tmp)
+            throw MetadataError.writeFailed(url, error.localizedDescription)
+        }
+    }
+
+    enum WriteStrategy {
+        /// Nur Metadaten ersetzen, Bilddaten 1:1 übernehmen (JPEG, HEIC, PNG).
+        case copy
+        /// Bild verlustfrei neu schreiben, mit expliziten EXIF/GPS-Angaben (TIFF, PNG).
+        case reencode
+    }
+
+    /// Schreibt eine temporäre Datei und prüft sie vollständig. Gibt sie nur zurück, wenn alle
+    /// Angaben korrekt darin stehen; sonst wird sie gelöscht und ein Fehler geworfen.
+    private static func attempt(_ strategy: WriteStrategy, source: CGImageSource, type: CFString,
+                                meta: CGMutableImageMetadata, metadata m: PhotoMetadata,
+                                expected: PhotoMetadata, url: URL) throws -> URL {
         let tmp = url.deletingLastPathComponent()
             .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString).tmp")
         guard let destination = CGImageDestinationCreateWithURL(tmp as CFURL, type, 1, nil) else {
             throw MetadataError.unsupportedFormat(url)
         }
+        let fail: (String) -> MetadataError = { reason in
+            try? FileManager.default.removeItem(at: tmp)
+            return MetadataError.writeFailed(url, reason)
+        }
 
-        let utType = UTType(type as String)
-        let isLossless = (utType?.conforms(to: .tiff) ?? false) || (utType?.conforms(to: .png) ?? false)
-        if isLossless {
-            // TIFF und PNG: `CopyImageSource` legt bei TIFF keinen GPS-Block an und übernimmt bei
-            // PNG mit vorhandenem XMP die Änderungen nicht. Beide Formate sind verlustfrei, daher
-            // schreiben wir das Bild mit expliziten Angaben neu (Pixel bleiben identisch).
+        switch strategy {
+        case .reencode:
+            // TIFF: `CopyImageSource` legt dort keinen GPS-Block an. Verlustfreie Formate
+            // werden daher mit expliziten Angaben neu geschrieben (Pixel bleiben identisch).
             guard CGImageSourceGetCount(source) == 1,
                   let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-                try? FileManager.default.removeItem(at: tmp)
-                throw MetadataError.writeFailed(url, "Mehrseitige bzw. animierte Bilddateien werden nicht unterstützt.")
+                throw fail("Mehrseitige bzw. animierte Bilddateien werden nicht unterstützt.")
             }
             let properties = updatedProperties(
                 CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] ?? [:], with: m)
             CGImageDestinationAddImageAndMetadata(destination, image, meta, properties as CFDictionary)
             guard CGImageDestinationFinalize(destination) else {
-                try? FileManager.default.removeItem(at: tmp)
-                throw MetadataError.writeFailed(url, "Die Datei konnte nicht geschrieben werden.")
+                throw fail("Die Datei konnte nicht geschrieben werden.")
             }
-        } else {
+        case .copy:
             let options: [String: Any] = [
                 kCGImageDestinationMetadata as String: meta,
                 // Wir übergeben die komplette (kopierte) Metadaten-Menge. Ohne Merge lassen sich
@@ -189,35 +235,26 @@ public enum MetadataService {
             ]
             var error: Unmanaged<CFError>?
             guard CGImageDestinationCopyImageSource(destination, source, options as CFDictionary, &error) else {
-                try? FileManager.default.removeItem(at: tmp)
                 let reason = error.map { ($0.takeRetainedValue() as Error).localizedDescription }
                     ?? "Das Format unterstützt das verlustfreie Schreiben von Metadaten nicht."
-                throw MetadataError.writeFailed(url, reason)
+                throw fail(reason)
             }
         }
 
-        // Plausibilitätsprüfung der neuen Datei, bevor das Original ersetzt wird.
+        // Technische Prüfung der neuen Datei.
         guard let check = CGImageSourceCreateWithURL(tmp as CFURL, nil),
               CGImageSourceGetCount(check) == CGImageSourceGetCount(source),
               pixelSize(check) == pixelSize(source) else {
-            try? FileManager.default.removeItem(at: tmp)
-            throw MetadataError.writeFailed(url, "Die neu geschriebene Datei war fehlerhaft. Das Original wurde nicht verändert.")
+            throw fail("Die neu geschriebene Datei war fehlerhaft. Das Original wurde nicht verändert.")
         }
 
-        // Inhaltliche Prüfung: Steht wirklich alles in der neuen Datei? Erst dann wird das
-        // Original ersetzt – sonst bleibt es unverändert.
+        // Inhaltliche Prüfung: Steht wirklich alles in der neuen Datei? Erst dann darf sie das
+        // Original ersetzen – sonst bleibt es unverändert.
         let missing = expected.differences(from: read(source: check))
         guard missing.isEmpty else {
-            try? FileManager.default.removeItem(at: tmp)
-            throw MetadataError.writeFailed(url, "Diese Angaben wären nicht korrekt gespeichert worden: \(missing.joined(separator: ", ")). Das Original wurde nicht verändert.")
+            throw fail("Diese Angaben wären nicht korrekt gespeichert worden: \(missing.joined(separator: ", ")). Das Original wurde nicht verändert.")
         }
-
-        do {
-            _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
-        } catch {
-            try? FileManager.default.removeItem(at: tmp)
-            throw MetadataError.writeFailed(url, error.localizedDescription)
-        }
+        return tmp
     }
 
     /// Klassische Property-Dictionaries (EXIF, GPS, TIFF, IPTC) passend zu den Metadaten anpassen.
@@ -430,10 +467,10 @@ public enum MetadataService {
         return (ref == "S" || ref == "W") ? -value : value
     }
 
-    /// Formate, in denen Gesichtsrahmen gespeichert werden. Derzeit alle unterstützten Formate;
-    /// die Prüfung vor dem Ersetzen verhindert in jedem Fall Datenverlust.
+    /// Gesichtsrahmen werden nur in Formaten gespeichert, in denen ImageIO die verschachtelten
+    /// XMP-Strukturen zuverlässig schreibt. Bei PNG war das in Tests nicht der Fall.
     public static func supportsFaceRegions(type: String) -> Bool {
-        true
+        !(UTType(type)?.conforms(to: .png) ?? false)
     }
 
     public static func supportsFaceRegions(url: URL) -> Bool {

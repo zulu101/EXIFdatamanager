@@ -24,7 +24,8 @@ Programme lesen – unabhängig von dieser App.
   - Die Bilddaten werden nicht neu komprimiert, nur die Metadaten werden ersetzt.
   - Die neue Datei wird erst geprüft und ersetzt dann das Original.
   - Optional wird vor dem ersten Speichern eine Sicherungskopie angelegt (Standard: an).
-  - Nach dem Speichern liest die App die Datei erneut ein und meldet Abweichungen.
+  - Bevor das Original ersetzt wird, liest die App die neue Datei vollständig ein und vergleicht
+    alle Angaben. Fehlt etwas, bleibt das Original unverändert und es erscheint eine Meldung.
 - Unterstützte Formate: JPEG, TIFF, PNG (HEIC je nach macOS-Version).
 
 ## Wo landen die Daten in der Datei?
@@ -50,6 +51,8 @@ sie lesen können: MWG-Regionen (z. B. Lightroom Classic, digiKam, ExifTool) und
 (offizieller IPTC-Standard seit 2019). Die Koordinaten beziehen sich – wie vom MWG-Standard
 verlangt – auf das gespeicherte, ungedrehte Bild; gedrehte Fotos werden korrekt umgerechnet.
 Regionen anderer Art aus anderen Programmen (z. B. Haustiere) bleiben erhalten.
+In **PNG-Dateien** werden keine Gesichtsrahmen gespeichert, weil ImageIO verschachtelte XMP-Strukturen
+dort in Tests nicht zuverlässig geschrieben hat – die Namen werden aber gespeichert.
 
 Die automatische Erkennung findet nur, *wo* Gesichter sind. Für Namensvorschläge vergleicht die App
 Bildausschnitte mit bereits benannten Gesichtern der geladenen Fotos. Diese Vergleichsdaten werden
