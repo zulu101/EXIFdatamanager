@@ -27,10 +27,12 @@ struct ImagePreview: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             HStack(spacing: 8) {
-                Image(systemName: "rectangle.dashed")
-                    .foregroundStyle(.secondary)
-                Text("Rahmen um ein Gesicht ziehen, um es zu markieren")
-                    .foregroundStyle(.secondary)
+                if item.supportsFaceRegions {
+                    Image(systemName: "rectangle.dashed")
+                        .foregroundStyle(.secondary)
+                    Text("Rahmen um ein Gesicht ziehen, um es zu markieren")
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button("In Vorschau öffnen") { NSWorkspace.shared.open(item.url) }
                     .buttonStyle(.link)
@@ -83,7 +85,7 @@ struct ImagePreview: View {
         }
         .frame(width: size.width, height: size.height)
         .contentShape(Rectangle())
-        .simultaneousGesture(drawGesture(size: size))
+        .simultaneousGesture(drawGesture(size: size), including: item.supportsFaceRegions ? .all : .subviews)
     }
 
     private func drawGesture(size: CGSize) -> some Gesture {

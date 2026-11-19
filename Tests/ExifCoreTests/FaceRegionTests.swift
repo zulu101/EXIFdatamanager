@@ -119,7 +119,20 @@ final class FaceRegionTests: XCTestCase {
 
     func testJPEGFaces() throws { try roundtrip(.jpeg, ext: "jpg") }
     func testTIFFFaces() throws { try roundtrip(.tiff, ext: "tif") }
-    func testPNGFaces() throws { try roundtrip(.png, ext: "png") }
+    func testPNGKeepsNamesButSkipsRegions() throws {
+        // PNG: Rahmen werden nicht geschrieben (ImageIO verliert dort XMP), die Namen aber schon.
+        let url = makeImage(.png, ext: "png")
+        var m = PhotoMetadata()
+        m.caption = "Test"
+        m.faces = sampleFaces()
+        try MetadataService.write(m, to: url)
+        let read = try MetadataService.read(from: url)
+        XCTAssertEqual(read.faces, [])
+        XCTAssertEqual(read.people, ["Erika Mustermann"])
+        XCTAssertEqual(read.caption, "Test")
+        XCTAssertFalse(MetadataService.supportsFaceRegions(url: url))
+        XCTAssertTrue(MetadataService.supportsFaceRegions(url: URL(fileURLWithPath: "/x/scan.jpg")))
+    }
 
     func testRotatedImageStoresUnrotatedCoordinates() throws {
         let url = makeImage(.jpeg, ext: "jpg", orientation: 6)

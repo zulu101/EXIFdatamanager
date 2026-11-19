@@ -193,7 +193,7 @@ extension AppModel {
 
         var added = 0
         var failed = 0
-        let loaded = targets.filter(\.isLoaded)
+        let loaded = targets.filter { $0.isLoaded && $0.supportsFaceRegions }
         for (index, item) in loaded.enumerated() {
             if let image = await image(for: item) {
                 let found = await Task.detached(priority: .userInitiated) {

@@ -30,6 +30,8 @@ final class PhotoItem: Identifiable {
     }
 
     var fileName: String { url.lastPathComponent }
+    /// Gesichtsrahmen sind nicht in allen Formaten möglich (PNG nicht).
+    var supportsFaceRegions: Bool { MetadataService.supportsFaceRegions(url: url) }
     var isDirty: Bool { isLoaded && edited.normalized() != original }
 
     func revert() {

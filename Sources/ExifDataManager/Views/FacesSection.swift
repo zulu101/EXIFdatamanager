@@ -10,6 +10,12 @@ struct FacesSection: View {
 
     var body: some View {
         Section {
+            if !item.supportsFaceRegions {
+                Label("In PNG-Dateien können keine Gesichtsrahmen gespeichert werden. Trage die Personen unten als Namen ein – oder speichere den Scan als JPEG oder TIFF.",
+                      systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
             HStack(spacing: 8) {
                 Button {
                     Task { message = await model.detectFaces(in: [item]) }
@@ -48,6 +54,7 @@ struct FacesSection: View {
 
             ForEach(Array(item.edited.faces.enumerated()), id: \.element.id) { index, face in
                 row(number: index + 1, face: face)
+            }
             }
         } header: {
             Text("Gesichter markieren")

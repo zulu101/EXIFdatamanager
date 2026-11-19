@@ -140,12 +140,17 @@ public enum MetadataService {
         }
         apply(m, to: meta)
 
-        // Gesichtsregionen: nur anfassen, wenn es welche gibt oder gab.
+        // Gesichtsregionen: nur anfassen, wenn es welche gibt oder gab – und nur in Formaten,
+        // in denen ImageIO sie zuverlässig speichert (nicht PNG, siehe `supportsFaceRegions`).
         let sourceProps = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] ?? [:]
         let geometry = imageGeometry(sourceProps)
         let existing = RegionMetadata.read(RegionMetadata.topLevelFields(meta),
                                            orientation: geometry.orientation, storedSize: geometry.size)
-        if !m.faces.isEmpty || !existing.isEmpty {
+        let regionsSupported = supportsFaceRegions(type: type as String)
+        var expected = m
+        if !regionsSupported {
+            expected.faces = existing.faces
+        } else if !m.faces.isEmpty || !existing.isEmpty {
             let fields = RegionMetadata.fields(for: m.faces, preserving: existing,
                                                orientation: geometry.orientation, storedSize: geometry.size)
             RegionMetadata.replace(in: meta, with: fields)
@@ -195,6 +200,14 @@ public enum MetadataService {
               pixelSize(check) == pixelSize(source) else {
             try? FileManager.default.removeItem(at: tmp)
             throw MetadataError.writeFailed(url, "Die neu geschriebene Datei war fehlerhaft. Das Original wurde nicht verändert.")
+        }
+
+        // Inhaltliche Prüfung: Steht wirklich alles in der neuen Datei? Erst dann wird das
+        // Original ersetzt – sonst bleibt es unverändert.
+        let missing = expected.differences(from: read(source: check))
+        guard missing.isEmpty else {
+            try? FileManager.default.removeItem(at: tmp)
+            throw MetadataError.writeFailed(url, "Diese Angaben wären nicht korrekt gespeichert worden: \(missing.joined(separator: ", ")). Das Original wurde nicht verändert.")
         }
 
         do {
@@ -413,6 +426,17 @@ public enum MetadataService {
         if parts.count > 1 { value += parts[1] / 60 }
         if parts.count > 2 { value += parts[2] / 3600 }
         return (ref == "S" || ref == "W") ? -value : value
+    }
+
+    /// Gesichtsrahmen werden nur in Formaten gespeichert, in denen ImageIO die verschachtelten
+    /// XMP-Strukturen zuverlässig schreibt. Bei PNG gingen in Tests dabei alle XMP-Daten verloren.
+    public static func supportsFaceRegions(type: String) -> Bool {
+        !(UTType(type)?.conforms(to: .png) ?? false)
+    }
+
+    public static func supportsFaceRegions(url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension) else { return true }
+        return supportsFaceRegions(type: type.identifier)
     }
 
     /// EXIF-Orientierung und Größe des gespeicherten (ungedrehten) Bildes.
