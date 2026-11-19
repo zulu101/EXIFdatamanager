@@ -29,15 +29,7 @@ Alle Angaben werden **direkt in die Bilddateien** geschrieben, in etablierten St
 XMP). So können sie auch Apple Fotos, Lightroom, digiKam oder künftige Programme lesen – unabhängig von
 dieser App.
 
-<!-- Screenshots: Bilder in docs/screenshots/ ablegen und die folgenden Zeilen einkommentieren.
-<p align="center">
-  <img src="docs/screenshots/main-window.png" width="800" alt="Hauptfenster">
-</p>
-<p align="center">
-  <img src="docs/screenshots/faces.png" width="400" alt="Gesichter markieren">
-  <img src="docs/screenshots/batch-editing.png" width="400" alt="Stapelbearbeitung">
-</p>
--->
+<img width="1496" height="842" alt="EXIF Data Manager" src="https://github.com/user-attachments/assets/d22a0b27-785a-451f-b402-ff0fe898b7e3" />
 
 ## Funktionen
 
