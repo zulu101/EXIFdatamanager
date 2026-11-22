@@ -29,6 +29,7 @@ public enum MetadataService {
     static let iptcExtNamespace = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/"
     static let iptcExtPrefix = "Iptc4xmpExt"
     static let dcNamespace = "http://purl.org/dc/elements/1.1/"
+    static let xmpMMNamespace = "http://ns.adobe.com/xap/1.0/mm/"
 
     // MARK: - Lesen
 
@@ -91,7 +92,9 @@ public enum MetadataService {
             ?? clean(iptc[kCGImagePropertyIPTCCountryPrimaryLocationName as String]) ?? ""
 
         // Beschreibung
-        m.preservedFileName = xmpString(xmp, "xmpMM:PreservedFileName")
+        if let xmp, let tag = findTag(xmp, namespace: xmpMMNamespace, name: "PreservedFileName") {
+            m.preservedFileName = stringValues(of: tag).first
+        }
         m.caption = xmpString(xmp, "dc:description")
             ?? clean(iptc[kCGImagePropertyIPTCCaptionAbstract as String])
             ?? clean(tiff[kCGImagePropertyTIFFImageDescription as String]) ?? ""
@@ -335,6 +338,8 @@ public enum MetadataService {
         setXMP(meta, "photoshop:Country", m.country)
 
         // Ursprünglicher Dateiname (XMP Media Management) – bleibt beim Umbenennen erhalten.
+        // ImageIO kennt diesen Namensraum nicht von sich aus, daher anmelden.
+        _ = CGImageMetadataRegisterNamespaceForPrefix(meta, xmpMMNamespace as CFString, "xmpMM" as CFString, nil)
         setXMP(meta, "xmpMM:PreservedFileName", m.preservedFileName ?? "")
 
         // Beschreibung (EXIF ImageDescription + XMP dc:description)
