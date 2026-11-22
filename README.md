@@ -28,15 +28,7 @@ decades.
 All information is written **directly into the image files** using established standards (EXIF, IPTC and
 XMP). Apple Photos, Lightroom, digiKam and future software can read it – independently of this app.
 
-<!-- Screenshots: add images to docs/screenshots/ and uncomment the lines below.
-<p align="center">
-  <img src="docs/screenshots/main-window.png" width="800" alt="Main window">
-</p>
-<p align="center">
-  <img src="docs/screenshots/faces.png" width="400" alt="Marking faces">
-  <img src="docs/screenshots/batch-editing.png" width="400" alt="Batch editing">
-</p>
--->
+<img width="1496" height="842" alt="EXIF Data Manager" src="https://github.com/user-attachments/assets/d0c6b9cc-4cf6-4f53-b82f-92bc499b4504" />
 
 ## Features
 
