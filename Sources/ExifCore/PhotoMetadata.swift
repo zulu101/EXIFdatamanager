@@ -21,6 +21,8 @@ public struct PhotoMetadata: Equatable, Sendable {
     public var caption: String = ""
     /// Markierte Gesichter (MWG-Regionen und IPTC-Bildregionen).
     public var faces: [FaceRegion] = []
+    /// Ursprünglicher Dateiname vor dem ersten Umbenennen (XMP `xmpMM:PreservedFileName`).
+    public var preservedFileName: String?
 
     public init() {}
 
@@ -49,6 +51,7 @@ public struct PhotoMetadata: Equatable, Sendable {
         m.state = trim(state)
         m.country = trim(country)
         m.caption = trim(caption)
+        m.preservedFileName = preservedFileName.map(trim).flatMap { $0.isEmpty ? nil : $0 }
         m.faces = faces.compactMap { face -> FaceRegion? in
             var f = face
             f.name = trim(face.name)
@@ -76,6 +79,7 @@ public struct PhotoMetadata: Equatable, Sendable {
         if Set(people) != Set(other.people) { d.append(String(localized: "Personen")) }
         if Set(keywords) != Set(other.keywords) { d.append(String(localized: "Schlagwörter")) }
         if caption != other.caption { d.append(String(localized: "Beschreibung")) }
+        if preservedFileName != other.preservedFileName { d.append(String(localized: "Originalname")) }
         if !facesMatch(other) { d.append(String(localized: "Gesichter")) }
         return d
     }

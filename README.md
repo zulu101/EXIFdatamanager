@@ -52,6 +52,13 @@ XMP). Apple Photos, Lightroom, digiKam and future software can read it – indep
 - **Batch editing** – select several photos (⇧/⌘-click) and set date, place, people, etc. at once – ideal
   for a whole film roll.
 - **“Copy from previous photo”** for photo series.
+- **Rename files from metadata** (⌘R) – e.g. `1985-07-14_00-00_Sylt.jpg`, with a freely configurable
+  pattern (date, place, city, country, people, description, original name, counter) and a live preview.
+  The date always has the form `YYYY-MM-DD_HH-MM`; unknown parts are filled with `00`
+  (`1985-07-00_00-00` = only month and year known), so files sort chronologically in any file browser.
+  The original file name is kept inside the file, and backup copies are renamed too.
+- **Set the file’s creation date** to the date taken (optional), so the Finder also sorts by
+  “Date Created”.
 - **Safe saving**
   - Image data is never re-compressed – only the metadata is replaced.
   - Before the original is replaced, the app re-reads the new file and compares every detail. If anything
@@ -104,6 +111,7 @@ The app is created at `build/EXIF Data Manager.app`.
 | Face frames | XMP `mwg-rs:Regions` (Metadata Working Group, type “Face”) **and** `Iptc4xmpExt:ImageRegion` (IPTC, content type “human”, with “Person shown”) |
 | Keywords | XMP `dc:subject` |
 | Description | EXIF `ImageDescription` / XMP `dc:description` |
+| Original file name (before renaming) | XMP `xmpMM:PreservedFileName` |
 
 People are also stored as keywords because many apps (including Apple Photos) don’t show the IPTC
 “Person shown” field, but they do show keywords.

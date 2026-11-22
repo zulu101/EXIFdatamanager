@@ -91,6 +91,7 @@ public enum MetadataService {
             ?? clean(iptc[kCGImagePropertyIPTCCountryPrimaryLocationName as String]) ?? ""
 
         // Beschreibung
+        m.preservedFileName = xmpString(xmp, "xmpMM:PreservedFileName")
         m.caption = xmpString(xmp, "dc:description")
             ?? clean(iptc[kCGImagePropertyIPTCCaptionAbstract as String])
             ?? clean(tiff[kCGImagePropertyTIFFImageDescription as String]) ?? ""
@@ -332,6 +333,9 @@ public enum MetadataService {
         setXMP(meta, "photoshop:City", m.city)
         setXMP(meta, "photoshop:State", m.state)
         setXMP(meta, "photoshop:Country", m.country)
+
+        // Ursprünglicher Dateiname (XMP Media Management) – bleibt beim Umbenennen erhalten.
+        setXMP(meta, "xmpMM:PreservedFileName", m.preservedFileName ?? "")
 
         // Beschreibung (EXIF ImageDescription + XMP dc:description)
         if m.caption.isEmpty {

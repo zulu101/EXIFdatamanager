@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @AppStorage(AppModel.backupDefaultsKey) private var createBackup = true
+    @AppStorage(AppModel.fileDateDefaultsKey) private var setFileDate = false
     @AppStorage(AppLanguage.defaultsKey) private var language: AppLanguage = .system
 
     var body: some View {
@@ -12,6 +13,11 @@ struct SettingsView: View {
             Form {
                 Toggle("Vor dem ersten Speichern eine Sicherungskopie anlegen", isOn: $createBackup)
                 Text("Die unveränderte Originaldatei wird einmalig in den Unterordner „\(BackupService.folderName)“ neben dem Foto kopiert.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Erstelldatum der Datei auf das Aufnahmedatum setzen", isOn: $setFileDate)
+                Text("Damit sortiert auch der Finder nach „Erstellt am“ chronologisch. Das Änderungsdatum bleibt unverändert.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

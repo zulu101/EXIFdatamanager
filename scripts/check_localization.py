@@ -29,7 +29,7 @@ CONTEXT = re.compile(
 ANY_LITERAL = re.compile(LITERAL)
 
 # Interpolationen, die Zahlen sind (alles andere wird %@).
-NUMERIC = re.compile(r'count|added|failed|done|number')
+NUMERIC = re.compile(r'count|added|failed|done|number|renamed|skipped', re.IGNORECASE)
 SKIP = {"%lld", "%@?", "OK", "EXIF Data Manager", "?", ""}
 
 

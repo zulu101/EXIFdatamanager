@@ -13,6 +13,12 @@ final class AppModel {
     var isSaving = false
     var saveProgress: Double = 0
     var isAnalyzingFaces = false
+    /// Fotos für das Umbenennen-Fenster (leer = Fenster geschlossen).
+    var renameTargets: [PhotoItem] = []
+    var isShowingRename: Bool {
+        get { !renameTargets.isEmpty }
+        set { if !newValue { renameTargets = [] } }
+    }
     var faceProgress: Double = 0
     /// Nur im Arbeitsspeicher; wird nie in Dateien geschrieben.
     @ObservationIgnored var featurePrintCache: [String: VNFeaturePrintObservation] = [:]
@@ -22,6 +28,8 @@ final class AppModel {
     let places = RecentPlacesStore()
 
     static let backupDefaultsKey = "createBackup"
+    static let fileDateDefaultsKey = "setFileCreationDate"
+    static let renamePatternDefaultsKey = "renamePattern"
 
     var selectedItems: [PhotoItem] {
         items.filter { selection.contains($0.id) }
@@ -134,6 +142,7 @@ final class AppModel {
         defer { isSaving = false }
 
         let backup = UserDefaults.standard.object(forKey: Self.backupDefaultsKey) as? Bool ?? true
+        let fileDate = UserDefaults.standard.bool(forKey: Self.fileDateDefaultsKey)
         var failures: [String] = []
 
         for (index, item) in dirty.enumerated() {
@@ -143,6 +152,9 @@ final class AppModel {
                 Result {
                     if backup { try BackupService.backupIfNeeded(url) }
                     try MetadataService.write(metadata, to: url)
+                    if fileDate, let date = metadata.date {
+                        try? FileNamer.setCreationDate(of: url, to: date)
+                    }
                     return try MetadataService.read(from: url)
                 }
             }.value
@@ -285,5 +297,73 @@ extension AppModel {
             }
         }
         return keys.map { featurePrintCache[$0] }
+    }
+}
+
+// MARK: - Umbenennen
+
+extension AppModel {
+    /// Öffnet das Umbenennen-Fenster für die gewählten Fotos (oder alle, wenn keine gewählt sind).
+    func requestRename(_ ids: Set<PhotoItem.ID>? = nil) {
+        let chosen = ids ?? selection
+        let targets = chosen.isEmpty ? items : items.filter { chosen.contains($0.id) }
+        renameTargets = targets.filter(\.isLoaded)
+    }
+
+    /// Vorschau: neue Namen für die Fotos (auf Basis der aktuellen, ggf. ungespeicherten Angaben).
+    func renamePreview(for targets: [PhotoItem], pattern: String) -> [URL] {
+        let inputs = targets.map { item -> (url: URL, metadata: PhotoMetadata) in
+            var m = item.edited.normalized()
+            if m.preservedFileName == nil { m.preservedFileName = item.fileName }
+            return (item.url, m)
+        }
+        return FileNamer.plan(inputs, pattern: pattern)
+    }
+
+    /// Benennt die Fotos nach dem Muster um. Vorher werden ungespeicherte Änderungen gespeichert und
+    /// der ursprüngliche Dateiname in der Datei festgehalten (XMP `xmpMM:PreservedFileName`).
+    func rename(_ targets: [PhotoItem], pattern: String) async -> String {
+        let loaded = targets.filter(\.isLoaded)
+        for item in loaded where item.original.preservedFileName == nil {
+            item.edited.preservedFileName = item.fileName
+        }
+        await save(loaded)
+
+        // Nur Fotos umbenennen, deren Angaben vollständig gespeichert sind.
+        let ready = loaded.filter { !$0.isDirty }
+        let skipped = loaded.count - ready.count
+        let targetsURLs = FileNamer.plan(ready.map { ($0.url, $0.original) }, pattern: pattern)
+        let setDate = UserDefaults.standard.bool(forKey: Self.fileDateDefaultsKey)
+
+        var renamed = 0
+        var failures: [String] = []
+        for (item, target) in zip(ready, targetsURLs) {
+            let source = item.url
+            let date = item.original.date
+            let result = await Task.detached(priority: .userInitiated) { () -> Result<Void, Error> in
+                Result {
+                    try FileNamer.rename(source, to: target)
+                    if setDate, let date { try? FileNamer.setCreationDate(of: target, to: date) }
+                }
+            }.value
+            switch result {
+            case .success:
+                if source != target { renamed += 1 }
+                item.url = target
+            case .failure(let error):
+                failures.append("\(source.lastPathComponent): \(error.localizedDescription)")
+            }
+        }
+
+        var message = renamed == 1
+            ? String(localized: "1 Datei umbenannt.")
+            : String(localized: "\(renamed) Dateien umbenannt.")
+        if skipped > 0 {
+            message += " " + String(localized: "\(skipped) Foto(s) übersprungen, weil sie nicht gespeichert werden konnten.")
+        }
+        if !failures.isEmpty {
+            errorMessage = failures.joined(separator: "\n")
+        }
+        return message
     }
 }

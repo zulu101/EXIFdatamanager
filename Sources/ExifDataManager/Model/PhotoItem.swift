@@ -8,7 +8,8 @@ import Observation
 @Observable
 final class PhotoItem: Identifiable {
     let id = UUID()
-    let url: URL
+    /// Ändert sich nur beim Umbenennen.
+    var url: URL
 
     var original = PhotoMetadata()
     var edited = PhotoMetadata()

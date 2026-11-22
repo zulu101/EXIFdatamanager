@@ -40,6 +40,9 @@ struct AppCommands: Commands {
             Button("Nächstes Foto") { model.selectNeighbour(offset: 1) }
                 .keyboardShortcut(.downArrow, modifiers: [.command])
             Divider()
+            Button("Umbenennen …") { model.requestRename() }
+                .keyboardShortcut("r")
+            Divider()
             Button("Änderungen der Auswahl verwerfen") {
                 model.selectedItems.forEach { $0.revert() }
             }

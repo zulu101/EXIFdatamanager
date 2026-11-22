@@ -20,6 +20,14 @@ struct ContentView: View {
                 }
                 .help("Fotos oder Ordner hinzufügen (⌘O)")
 
+                Button {
+                    model.requestRename()
+                } label: {
+                    Label("Umbenennen", systemImage: "character.textbox")
+                }
+                .disabled(model.items.isEmpty)
+                .help("Dateien anhand von Datum, Ort, Personen … umbenennen (⌘R)")
+
                 if model.isSaving {
                     ProgressView(value: model.saveProgress)
                         .progressViewStyle(.circular)
@@ -34,6 +42,11 @@ struct ContentView: View {
                 .disabled(!model.hasUnsavedChanges || model.isSaving)
                 .help("Alle Änderungen in die Bilddateien schreiben (⌘S)")
             }
+        }
+        .sheet(isPresented: Binding(get: { model.isShowingRename },
+                                    set: { model.isShowingRename = $0 })) {
+            RenameSheet(items: model.renameTargets)
+                .environment(model)
         }
         .dropDestination(for: URL.self) { urls, _ in
             model.add(urls: urls)
