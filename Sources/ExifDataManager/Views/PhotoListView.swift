@@ -17,6 +17,7 @@ struct PhotoListView: View {
                 let urls = model.items.filter { ids.contains($0.id) }.map(\.url)
                 NSWorkspace.shared.activateFileViewerSelecting(urls)
             }
+            Button("Umbenennen …") { model.requestRename(ids) }
             Button("Änderungen verwerfen") {
                 model.items.filter { ids.contains($0.id) }.forEach { $0.revert() }
             }
@@ -59,6 +60,7 @@ struct PhotoRow: View {
                 }
             }
             .frame(width: 52, height: 52)
+            .rotationEffect(.degrees(Double(90 * item.thumbnailQuarterTurns)))
             .clipShape(RoundedRectangle(cornerRadius: 4))
 
             VStack(alignment: .leading, spacing: 2) {

@@ -1,4 +1,5 @@
 import ExifCore
+import ImageIO
 import SwiftUI
 
 /// Große Bildvorschau mit Gesichtsrahmen.
@@ -6,6 +7,9 @@ import SwiftUI
 struct ImagePreview: View {
     @Bindable var item: PhotoItem
     @State private var image: NSImage?
+    /// Bild so, wie es in der Datei ausgerichtet ist, und diese Ausrichtung.
+    @State private var base: CGImage?
+    @State private var baseOrientation = 1
     @State private var draft: CGRect?
 
     var body: some View {
@@ -34,6 +38,21 @@ struct ImagePreview: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button {
+                    item.edited.rotate(clockwise: false)
+                } label: {
+                    Image(systemName: "rotate.left")
+                }
+                .buttonStyle(.borderless)
+                .help("Nach links drehen (⌘L)")
+                Button {
+                    item.edited.rotate(clockwise: true)
+                } label: {
+                    Image(systemName: "rotate.right")
+                }
+                .buttonStyle(.borderless)
+                .help("Nach rechts drehen (⌘R)")
+                Divider().frame(height: 12)
                 Button("In Vorschau öffnen") { NSWorkspace.shared.open(item.url) }
                     .buttonStyle(.link)
             }
@@ -43,18 +62,30 @@ struct ImagePreview: View {
         .background(Color(nsColor: .underPageBackgroundColor))
         .task(id: item.id) {
             let url = item.url
-            let cg = await Task.detached(priority: .userInitiated) {
-                MetadataService.thumbnail(for: url, maxPixelSize: 2400, allowEmbedded: false)
+            let (cg, orientation) = await Task.detached(priority: .userInitiated) { () -> (CGImage?, Int) in
+                let image = MetadataService.thumbnail(for: url, maxPixelSize: 2400, allowEmbedded: false)
+                let props = CGImageSourceCreateWithURL(url as CFURL, nil)
+                    .flatMap { CGImageSourceCopyPropertiesAtIndex($0, 0, nil) } as? [String: Any]
+                return (image, props?[kCGImagePropertyOrientation as String] as? Int ?? 1)
             }.value
-            if let cg {
-                item.previewImage = cg
-                image = NSImage(cgImage: cg, size: .zero)
-            }
+            base = cg
+            baseOrientation = orientation
+            updateDisplayedImage()
         }
+        .onChange(of: item.edited.orientation) { _, _ in updateDisplayedImage() }
         .onDisappear {
             // Großes Bild nicht unnötig im Speicher halten.
             item.previewImage = nil
         }
+    }
+
+    /// Zeigt das Bild mit der (ggf. noch nicht gespeicherten) Ausrichtung an.
+    private func updateDisplayedImage() {
+        guard let base else { return }
+        let turns = ImageOrientation.quarterTurns(from: baseOrientation, to: item.edited.orientation) ?? 0
+        let shown = ImageOrientation.rotate(base, quarterTurns: turns) ?? base
+        item.previewImage = shown
+        image = NSImage(cgImage: shown, size: .zero)
     }
 
     private func canvas(image: NSImage, size: CGSize) -> some View {

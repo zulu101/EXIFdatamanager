@@ -20,6 +20,30 @@ struct ContentView: View {
                 }
                 .help("Fotos oder Ordner hinzufügen (⌘O)")
 
+                Button {
+                    model.rotateSelection(clockwise: false)
+                } label: {
+                    Label("Nach links drehen", systemImage: "rotate.left")
+                }
+                .disabled(model.selection.isEmpty)
+                .help("Ausgewählte Fotos um 90° nach links drehen (⌘L)")
+
+                Button {
+                    model.rotateSelection(clockwise: true)
+                } label: {
+                    Label("Nach rechts drehen", systemImage: "rotate.right")
+                }
+                .disabled(model.selection.isEmpty)
+                .help("Ausgewählte Fotos um 90° nach rechts drehen (⌘R)")
+
+                Button {
+                    model.requestRename()
+                } label: {
+                    Label("Umbenennen", systemImage: "character.textbox")
+                }
+                .disabled(model.items.isEmpty)
+                .help("Dateien anhand von Datum, Ort, Personen … umbenennen (⇧⌘R)")
+
                 if model.isSaving {
                     ProgressView(value: model.saveProgress)
                         .progressViewStyle(.circular)
@@ -34,6 +58,15 @@ struct ContentView: View {
                 .disabled(!model.hasUnsavedChanges || model.isSaving)
                 .help("Alle Änderungen in die Bilddateien schreiben (⌘S)")
             }
+        }
+        .sheet(isPresented: Binding(get: { model.isShowingRename },
+                                    set: { model.isShowingRename = $0 })) {
+            RenameSheet(items: model.renameTargets)
+                .environment(model)
+        }
+        .task {
+            // Abgelaufene Sicherungskopien beim Start in den Papierkorb legen.
+            model.cleanUpBackups(quitting: false)
         }
         .dropDestination(for: URL.self) { urls, _ in
             model.add(urls: urls)

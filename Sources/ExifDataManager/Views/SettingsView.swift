@@ -5,6 +5,10 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @AppStorage(AppModel.backupDefaultsKey) private var createBackup = true
+    @AppStorage(AppModel.fileDateDefaultsKey) private var setFileDate = false
+    @AppStorage(AppModel.backupRetentionDefaultsKey) private var retention: BackupService.Retention = .thirtyDays
+    @State private var backupCount = 0
+    @State private var cleanupMessage: String?
     @AppStorage(AppLanguage.defaultsKey) private var language: AppLanguage = .system
 
     var body: some View {
@@ -12,6 +16,38 @@ struct SettingsView: View {
             Form {
                 Toggle("Vor dem ersten Speichern eine Sicherungskopie anlegen", isOn: $createBackup)
                 Text("Die unveränderte Originaldatei wird einmalig in den Unterordner „\(BackupService.folderName)“ neben dem Foto kopiert.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Picker("Sicherungskopien in den Papierkorb legen", selection: $retention) {
+                    ForEach(BackupService.Retention.allCases) { option in
+                        Text(option.label).tag(option)
+                    }
+                }
+                HStack {
+                    Text(backupCount == 1 ? "Derzeit 1 Sicherungskopie." : "Derzeit \(backupCount) Sicherungskopien." as LocalizedStringKey)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Jetzt alle in den Papierkorb legen") {
+                        let removed = model.cleanUpBackups(olderThan: .distantFuture)
+                        cleanupMessage = String(localized: "\(removed) Sicherungskopie(n) in den Papierkorb gelegt.")
+                        refreshBackupCount()
+                    }
+                    .disabled(backupCount == 0)
+                }
+                if let cleanupMessage {
+                    Text(cleanupMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text("Abgelaufene Kopien werden beim Start und beim Beenden der App aufgeräumt. Sie landen im Papierkorb und lassen sich von dort bei Bedarf wiederherstellen.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Toggle("Erstelldatum der Datei auf das Aufnahmedatum setzen", isOn: $setFileDate)
+                Text("Damit sortiert auch der Finder nach „Erstellt am“ chronologisch. Das Änderungsdatum bleibt unverändert.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -48,7 +84,14 @@ struct SettingsView: View {
             SuggestionList(title: "Bekannte Schlagwörter", store: model.keywords)
                 .tabItem { Label("Schlagwörter", systemImage: "tag") }
         }
-        .frame(width: 520, height: 380)
+        .frame(width: 560, height: 520)
+        .onAppear { refreshBackupCount() }
+    }
+}
+
+extension SettingsView {
+    fileprivate func refreshBackupCount() {
+        backupCount = BackupService.backups(in: model.backupFolders).count
     }
 }
 
