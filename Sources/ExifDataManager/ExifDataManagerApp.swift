@@ -40,8 +40,13 @@ struct AppCommands: Commands {
             Button("Nächstes Foto") { model.selectNeighbour(offset: 1) }
                 .keyboardShortcut(.downArrow, modifiers: [.command])
             Divider()
-            Button("Umbenennen …") { model.requestRename() }
+            Button("Nach links drehen") { model.rotateSelection(clockwise: false) }
+                .keyboardShortcut("l")
+            Button("Nach rechts drehen") { model.rotateSelection(clockwise: true) }
                 .keyboardShortcut("r")
+            Divider()
+            Button("Umbenennen …") { model.requestRename() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
             Divider()
             Button("Änderungen der Auswahl verwerfen") {
                 model.selectedItems.forEach { $0.revert() }
@@ -65,7 +70,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let model, model.hasUnsavedChanges else { return .terminateNow }
+        guard let model else { return .terminateNow }
+        guard model.hasUnsavedChanges else {
+            model.cleanUpBackups(quitting: true)
+            return .terminateNow
+        }
 
         let alert = NSAlert()
         alert.messageText = String(localized: "Ungespeicherte Änderungen")
@@ -78,10 +87,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .alertFirstButtonReturn:
             Task { @MainActor in
                 await model.saveAll()
-                NSApp.reply(toApplicationShouldTerminate: !model.hasUnsavedChanges)
+                let canQuit = !model.hasUnsavedChanges
+                if canQuit { model.cleanUpBackups(quitting: true) }
+                NSApp.reply(toApplicationShouldTerminate: canQuit)
             }
             return .terminateLater
         case .alertSecondButtonReturn:
+            model.cleanUpBackups(quitting: true)
             return .terminateNow
         default:
             return .terminateCancel

@@ -110,3 +110,67 @@ public enum ImageOrientation {
         return CGRect(x: min(a.0, b.0), y: min(a.1, b.1), width: abs(a.0 - b.0), height: abs(a.1 - b.1))
     }
 }
+
+// MARK: - Drehen um 90°
+
+extension ImageOrientation {
+    /// Neue EXIF-Orientierung, wenn das angezeigte Bild um 90° gedreht wird.
+    /// (Gespiegelte Orientierungen bleiben gespiegelt.)
+    public static func rotated(_ orientation: Int, clockwise: Bool) -> Int {
+        let cw: [Int: Int] = [1: 6, 6: 3, 3: 8, 8: 1, 2: 7, 7: 4, 4: 5, 5: 2]
+        let ccw: [Int: Int] = Dictionary(uniqueKeysWithValues: cw.map { ($1, $0) })
+        return (clockwise ? cw : ccw)[orientation] ?? (clockwise ? 6 : 8)
+    }
+
+    /// Anzahl Vierteldrehungen im Uhrzeigersinn von `from` nach `to` (0…3), oder `nil`,
+    /// wenn sich die beiden nicht nur durch Drehen unterscheiden.
+    public static func quarterTurns(from: Int, to: Int) -> Int? {
+        var current = from
+        for turns in 0..<4 {
+            if current == to { return turns }
+            current = rotated(current, clockwise: true)
+        }
+        return nil
+    }
+
+    /// Relatives Rechteck im angezeigten Bild nach einer 90°-Drehung des Bildes.
+    public static func rotate(_ rect: CGRect, clockwise: Bool) -> CGRect {
+        // Im Uhrzeigersinn: (x, y) → (1 − y, x); gegen den Uhrzeigersinn: (x, y) → (y, 1 − x)
+        if clockwise {
+            return CGRect(x: 1 - rect.maxY, y: rect.minX, width: rect.height, height: rect.width)
+        } else {
+            return CGRect(x: rect.minY, y: 1 - rect.maxX, width: rect.height, height: rect.width)
+        }
+    }
+
+    /// Dreht ein Bild um Vierteldrehungen im Uhrzeigersinn (nur für die Anzeige).
+    public static func rotate(_ image: CGImage, quarterTurns: Int) -> CGImage? {
+        let turns = ((quarterTurns % 4) + 4) % 4
+        guard turns != 0 else { return image }
+        let w = image.width, h = image.height
+        let (outW, outH) = turns % 2 == 0 ? (w, h) : (h, w)
+        guard let ctx = CGContext(data: nil, width: outW, height: outH, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            ?? CGContext(data: nil, width: outW, height: outH, bitsPerComponent: 8, bytesPerRow: 0,
+                         space: CGColorSpaceCreateDeviceRGB(),
+                         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        // CoreGraphics: Ursprung unten links, positive Winkel gegen den Uhrzeigersinn.
+        ctx.translateBy(x: CGFloat(outW) / 2, y: CGFloat(outH) / 2)
+        ctx.rotate(by: -CGFloat(turns) * .pi / 2)
+        ctx.draw(image, in: CGRect(x: -CGFloat(w) / 2, y: -CGFloat(h) / 2, width: CGFloat(w), height: CGFloat(h)))
+        return ctx.makeImage()
+    }
+}
+
+extension FaceRegion {
+    public func rotated(clockwise: Bool) -> FaceRegion {
+        var copy = self
+        let r = ImageOrientation.rotate(rect, clockwise: clockwise)
+        copy.x = r.minX
+        copy.y = r.minY
+        copy.width = r.width
+        copy.height = r.height
+        return copy
+    }
+}

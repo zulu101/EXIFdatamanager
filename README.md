@@ -43,8 +43,10 @@ XMP). Apple Photos, Lightroom, digiKam and future software can read it – indep
 - **Description and keywords.**
 - **Batch editing** – select several photos (⇧/⌘-click) and set date, place, people, etc. at once – ideal
   for a whole film roll.
+- **Rotate photos** 90° left/right (⌘L / ⌘R) – lossless, via the EXIF orientation tag. Marked faces rotate
+  along.
 - **“Copy from previous photo”** for photo series.
-- **Rename files from metadata** (⌘R) – e.g. `1985-07-14_00-00_Sylt.jpg`, with a freely configurable
+- **Rename files from metadata** (⇧⌘R) – e.g. `1985-07-14_00-00_Sylt.jpg`, with a freely configurable
   pattern (date, place, city, country, people, description, original name, counter) and a live preview.
   The date always has the form `YYYY-MM-DD_HH-MM`; unknown parts are filled with `00`
   (`1985-07-00_00-00` = only month and year known), so files sort chronologically in any file browser.
@@ -55,7 +57,8 @@ XMP). Apple Photos, Lightroom, digiKam and future software can read it – indep
   - Image data is never re-compressed – only the metadata is replaced.
   - Before the original is replaced, the app re-reads the new file and compares every detail. If anything
     is missing, the original stays untouched.
-  - Optional backup copy before the first save (on by default).
+  - Optional backup copy before the first save (on by default). Backups are moved to the Trash
+    automatically – when quitting, after 7 or 30 days (default), or never.
 - **German and English** user interface.
 - Supported formats: JPEG, TIFF, PNG (HEIC depending on the macOS version).
 
@@ -104,6 +107,7 @@ The app is created at `build/EXIF Data Manager.app`.
 | Keywords | XMP `dc:subject` |
 | Description | EXIF `ImageDescription` / XMP `dc:description` |
 | Original file name (before renaming) | XMP `xmpMM:PreservedFileName` |
+| Rotation | EXIF/TIFF `Orientation` (image data is not changed) |
 
 People are also stored as keywords because many apps (including Apple Photos) don’t show the IPTC
 “Person shown” field, but they do show keywords.

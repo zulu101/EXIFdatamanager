@@ -101,7 +101,7 @@ struct DateEditor: View {
 
     private var yearField: some View {
         TextField("Jahr", value: component(\.year), format: .number.grouping(.never))
-            .frame(maxWidth: 200)
+            .multilineTextAlignment(.trailing)
     }
 
     private var precision: Binding<DatePrecision> {

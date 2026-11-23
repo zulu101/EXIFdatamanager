@@ -44,8 +44,10 @@ dieser App.
 - **Beschreibung und Schlagwörter.**
 - **Stapelbearbeitung** – mehrere Fotos auswählen (⇧/⌘-Klick) und Datum, Ort, Personen usw. auf einmal
   setzen – ideal für einen ganzen Film.
+- **Fotos drehen** um 90° nach links/rechts (⌘L / ⌘R) – verlustfrei über die EXIF-Ausrichtung. Markierte
+  Gesichter drehen sich mit.
 - **„Vom vorherigen Foto übernehmen“** für Bildserien.
-- **Dateien anhand der Metadaten umbenennen** (⌘R) – z. B. `1985-07-14_00-00_Sylt.jpg`, mit frei
+- **Dateien anhand der Metadaten umbenennen** (⇧⌘R) – z. B. `1985-07-14_00-00_Sylt.jpg`, mit frei
   wählbarem Muster (Datum, Ort, Stadt, Land, Personen, Beschreibung, Originalname, Zähler) und
   Live-Vorschau. Das Datum hat immer die Form `JJJJ-MM-TT_HH-MM`; Unbekanntes wird mit `00` aufgefüllt
   (`1985-07-00_00-00` = nur Monat und Jahr bekannt), sodass die Dateien in jedem Datei-Explorer
@@ -57,7 +59,8 @@ dieser App.
   - Die Bilddaten werden nie neu komprimiert, nur die Metadaten werden ersetzt.
   - Bevor das Original ersetzt wird, liest die App die neue Datei vollständig ein und vergleicht alle
     Angaben. Fehlt etwas, bleibt das Original unverändert.
-  - Optionale Sicherungskopie vor dem ersten Speichern (standardmäßig an).
+  - Optionale Sicherungskopie vor dem ersten Speichern (standardmäßig an). Sicherungskopien landen
+    automatisch im Papierkorb – beim Beenden, nach 7 oder 30 Tagen (Standard) oder nie.
 - Oberfläche auf **Deutsch und Englisch**.
 - Unterstützte Formate: JPEG, TIFF, PNG (HEIC je nach macOS-Version).
 
@@ -107,6 +110,7 @@ Die App liegt danach unter `build/EXIF Data Manager.app`.
 | Schlagwörter | XMP `dc:subject` |
 | Beschreibung | EXIF `ImageDescription` / XMP `dc:description` |
 | Ursprünglicher Dateiname (vor dem Umbenennen) | XMP `xmpMM:PreservedFileName` |
+| Drehung | EXIF/TIFF `Orientation` (die Bilddaten bleiben unverändert) |
 
 Personen werden zusätzlich als Schlagwort gespeichert, weil viele Programme (u. a. Apple Fotos) das
 IPTC-Feld „Person im Bild“ nicht anzeigen, Schlagwörter aber schon.

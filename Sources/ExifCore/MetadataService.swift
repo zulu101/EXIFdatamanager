@@ -116,6 +116,7 @@ public enum MetadataService {
 
         // Gesichtsregionen (MWG + IPTC)
         let geometry = imageGeometry(props)
+        m.orientation = geometry.orientation
         m.faces = RegionMetadata.read(RegionMetadata.topLevelFields(xmp),
                                       orientation: geometry.orientation, storedSize: geometry.size).faces
 
@@ -156,7 +157,7 @@ public enum MetadataService {
             expected.faces = existing.faces
         } else if !m.faces.isEmpty || !existing.isEmpty {
             let fields = RegionMetadata.fields(for: m.faces, preserving: existing,
-                                               orientation: geometry.orientation, storedSize: geometry.size)
+                                               orientation: m.orientation, storedSize: geometry.size)
             RegionMetadata.replace(in: meta, with: fields)
         }
 
@@ -264,6 +265,7 @@ public enum MetadataService {
     /// Klassische Property-Dictionaries (EXIF, GPS, TIFF, IPTC) passend zu den Metadaten anpassen.
     static func updatedProperties(_ original: [String: Any], with m: PhotoMetadata) -> [String: Any] {
         var props = original
+        props[kCGImagePropertyOrientation as String] = m.orientation
 
         var exif = props[kCGImagePropertyExifDictionary as String] as? [String: Any] ?? [:]
         exif[kCGImagePropertyExifDateTimeOriginal as String] = m.date?.exifString
@@ -285,6 +287,7 @@ public enum MetadataService {
 
         var tiff = props[kCGImagePropertyTIFFDictionary as String] as? [String: Any] ?? [:]
         tiff[kCGImagePropertyTIFFImageDescription as String] = m.caption.isEmpty ? nil : m.caption
+        tiff[kCGImagePropertyTIFFOrientation as String] = m.orientation
         props[kCGImagePropertyTIFFDictionary as String] = tiff
 
         // Einen vorhandenen IPTC-IIM-Block konsistent halten, aber keinen neuen anlegen.
@@ -308,6 +311,9 @@ public enum MetadataService {
 
     static func apply(_ m: PhotoMetadata, to meta: CGMutableImageMetadata) {
         _ = CGImageMetadataRegisterNamespaceForPrefix(meta, iptcExtNamespace as CFString, iptcExtPrefix as CFString, nil)
+
+        // Ausrichtung (EXIF/TIFF Orientation)
+        setProperty(meta, kCGImagePropertyTIFFDictionary, kCGImagePropertyTIFFOrientation, NSNumber(value: m.orientation))
 
         // Datum
         if let date = m.date {
@@ -506,12 +512,102 @@ public enum MetadataService {
 public enum BackupService {
     public static let folderName = "Originale (Backup)"
 
-    public static func backupIfNeeded(_ url: URL) throws {
+    /// Ordner mit Sicherungskopien für ein Foto.
+    public static func folder(for url: URL) -> URL {
+        url.deletingLastPathComponent().appendingPathComponent(folderName, isDirectory: true)
+    }
+
+    /// Kopiert das unveränderte Original einmalig in den Backup-Ordner.
+    /// Gibt den Ordner zurück, wenn eine neue Kopie angelegt wurde.
+    @discardableResult
+    public static func backupIfNeeded(_ url: URL) throws -> URL? {
         let fm = FileManager.default
-        let dir = url.deletingLastPathComponent().appendingPathComponent(folderName, isDirectory: true)
+        let dir = folder(for: url)
         let target = dir.appendingPathComponent(url.lastPathComponent)
-        guard !fm.fileExists(atPath: target.path) else { return }
+        guard !fm.fileExists(atPath: target.path) else { return nil }
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         try fm.copyItem(at: url, to: target)
+        // Das Erstelldatum der Kopie markiert, wann die Sicherung angelegt wurde – Grundlage für
+        // das automatische Aufräumen. (Beim Kopieren übernimmt macOS sonst das alte Datum.)
+        try? fm.setAttributes([.creationDate: Date()], ofItemAtPath: target.path)
+        return dir
+    }
+
+    /// Wie lange Sicherungskopien aufbewahrt werden.
+    public enum Retention: String, CaseIterable, Identifiable, Sendable {
+        case untilQuit
+        case sevenDays
+        case thirtyDays
+        case forever
+
+        public var id: String { rawValue }
+
+        public var label: String {
+            switch self {
+            case .untilQuit: return String(localized: "Beim Beenden der App")
+            case .sevenDays: return String(localized: "Nach 7 Tagen")
+            case .thirtyDays: return String(localized: "Nach 30 Tagen")
+            case .forever: return String(localized: "Nie automatisch")
+            }
+        }
+
+        /// Kopien, die vor diesem Zeitpunkt angelegt wurden, sind abgelaufen.
+        public func cutoff(now: Date = Date(), quitting: Bool) -> Date? {
+            switch self {
+            case .untilQuit: return quitting ? .distantFuture : nil
+            case .sevenDays: return now.addingTimeInterval(-7 * 24 * 3600)
+            case .thirtyDays: return now.addingTimeInterval(-30 * 24 * 3600)
+            case .forever: return nil
+            }
+        }
+    }
+
+    public struct CleanupResult: Sendable {
+        public var removedFiles = 0
+        /// Ordner, die noch Sicherungskopien enthalten.
+        public var remainingFolders: [URL] = []
+    }
+
+    /// Alle Sicherungskopien in den Ordnern, mit Anlagedatum.
+    public static func backups(in folders: [URL]) -> [(url: URL, created: Date)] {
+        let fm = FileManager.default
+        return folders.flatMap { dir -> [(url: URL, created: Date)] in
+            let files = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.creationDateKey],
+                                                     options: [.skipsHiddenFiles])) ?? []
+            return files.map { file in
+                let created = (try? file.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
+                return (file, created)
+            }
+        }
+    }
+
+    /// Legt abgelaufene Sicherungskopien in den Papierkorb (nicht endgültig löschen).
+    /// Ein Ordner, der danach leer ist, kommt ebenfalls in den Papierkorb.
+    public static func cleanUp(folders: [URL], olderThan cutoff: Date) -> CleanupResult {
+        let fm = FileManager.default
+        var result = CleanupResult()
+        for dir in folders where dir.lastPathComponent == folderName {
+            var isDir: ObjCBool = false
+            guard fm.fileExists(atPath: dir.path, isDirectory: &isDir), isDir.boolValue else { continue }
+            let files = backups(in: [dir])
+            let expired = files.filter { $0.created < cutoff }
+            if !files.isEmpty && expired.count == files.count {
+                // Alles abgelaufen: den ganzen Ordner auf einmal in den Papierkorb.
+                if (try? fm.trashItem(at: dir, resultingItemURL: nil)) != nil {
+                    result.removedFiles += files.count
+                    continue
+                }
+            }
+            for file in expired where (try? fm.trashItem(at: file.url, resultingItemURL: nil)) != nil {
+                result.removedFiles += 1
+            }
+            let remaining = backups(in: [dir])
+            if remaining.isEmpty {
+                try? fm.trashItem(at: dir, resultingItemURL: nil)
+            } else {
+                result.remainingFolders.append(dir)
+            }
+        }
+        return result
     }
 }

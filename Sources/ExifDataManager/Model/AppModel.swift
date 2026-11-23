@@ -29,6 +29,8 @@ final class AppModel {
 
     static let backupDefaultsKey = "createBackup"
     static let fileDateDefaultsKey = "setFileCreationDate"
+    static let backupRetentionDefaultsKey = "backupRetention"
+    static let backupFoldersDefaultsKey = "backupFolders"
     static let renamePatternDefaultsKey = "renamePattern"
 
     var selectedItems: [PhotoItem] {
@@ -104,6 +106,7 @@ final class AppModel {
                 let isDirectory = (try? file.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
                 if isDirectory {
                     if file.lastPathComponent == BackupService.folderName {
+                        registerBackupFolder(file)
                         enumerator.skipDescendants()
                     }
                 } else if MetadataService.supportedExtensions.contains(file.pathExtension.lowercased()) {
@@ -161,6 +164,7 @@ final class AppModel {
 
             switch result {
             case .success(let reread):
+                if backup { registerBackupFolder(BackupService.folder(for: url)) }
                 // Kontrolle: Steht jetzt wirklich das in der Datei, was eingegeben wurde?
                 let diffs = metadata.differences(from: reread)
                 item.original = reread
@@ -276,8 +280,11 @@ extension AppModel {
     private func image(for item: PhotoItem) async -> CGImage? {
         if let preview = item.previewImage { return preview }
         let url = item.url
+        let turns = item.pendingQuarterTurns
         return await Task.detached(priority: .userInitiated) {
+            // Noch nicht gespeicherte Drehungen berücksichtigen, damit Rahmen zur Ansicht passen.
             MetadataService.thumbnail(for: url, maxPixelSize: 2000, allowEmbedded: false)
+                .flatMap { ImageOrientation.rotate($0, quarterTurns: turns) }
         }.value
     }
 
@@ -365,5 +372,54 @@ extension AppModel {
             errorMessage = failures.joined(separator: "\n")
         }
         return message
+    }
+}
+
+// MARK: - Drehen
+
+extension AppModel {
+    /// Dreht die ausgewählten Fotos um 90°. Gespeichert wird wie alle Änderungen mit „Speichern“.
+    func rotateSelection(clockwise: Bool) {
+        for item in selectedItems where item.isLoaded {
+            item.edited.rotate(clockwise: clockwise)
+        }
+    }
+}
+
+// MARK: - Sicherungskopien aufräumen
+
+extension AppModel {
+    var backupRetention: BackupService.Retention {
+        BackupService.Retention(rawValue: UserDefaults.standard.string(forKey: Self.backupRetentionDefaultsKey) ?? "")
+            ?? .thirtyDays
+    }
+
+    /// Backup-Ordner, die die App angelegt oder gesehen hat (nur Pfade, in den Einstellungen).
+    var backupFolders: [URL] {
+        (UserDefaults.standard.stringArray(forKey: Self.backupFoldersDefaultsKey) ?? [])
+            .map { URL(fileURLWithPath: $0, isDirectory: true) }
+    }
+
+    func registerBackupFolder(_ folder: URL) {
+        var paths = UserDefaults.standard.stringArray(forKey: Self.backupFoldersDefaultsKey) ?? []
+        let path = folder.standardizedFileURL.path
+        guard !paths.contains(path) else { return }
+        paths.append(path)
+        UserDefaults.standard.set(paths, forKey: Self.backupFoldersDefaultsKey)
+    }
+
+    /// Legt abgelaufene Sicherungskopien in den Papierkorb – beim Start und beim Beenden der App.
+    @discardableResult
+    func cleanUpBackups(quitting: Bool) -> Int {
+        guard let cutoff = backupRetention.cutoff(quitting: quitting) else { return 0 }
+        return cleanUpBackups(olderThan: cutoff)
+    }
+
+    /// Alle Sicherungskopien, die vor `cutoff` angelegt wurden, in den Papierkorb legen.
+    @discardableResult
+    func cleanUpBackups(olderThan cutoff: Date) -> Int {
+        let result = BackupService.cleanUp(folders: backupFolders, olderThan: cutoff)
+        UserDefaults.standard.set(result.remainingFolders.map(\.path), forKey: Self.backupFoldersDefaultsKey)
+        return result.removedFiles
     }
 }

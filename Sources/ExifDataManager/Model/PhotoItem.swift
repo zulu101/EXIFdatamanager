@@ -17,6 +17,8 @@ final class PhotoItem: Identifiable {
     var loadError: String?
     var saveWarning: String?
     var thumbnail: NSImage?
+    /// Ausrichtung, mit der das Vorschaubild in der Liste erzeugt wurde.
+    var thumbnailOrientation = 1
 
     // Nur für die Oberfläche, wird nicht gespeichert:
     /// Großes Vorschaubild (nur solange das Foto angezeigt wird).
@@ -34,6 +36,16 @@ final class PhotoItem: Identifiable {
     /// Gesichtsrahmen sind nicht in allen Formaten möglich (PNG nicht).
     var supportsFaceRegions: Bool { MetadataService.supportsFaceRegions(url: url) }
     var isDirty: Bool { isLoaded && edited.normalized() != original }
+
+    /// Drehung des Listen-Vorschaubilds gegenüber der Anzeige (Vierteldrehungen im Uhrzeigersinn).
+    var thumbnailQuarterTurns: Int {
+        ImageOrientation.quarterTurns(from: thumbnailOrientation, to: edited.orientation) ?? 0
+    }
+
+    /// Noch nicht gespeicherte Drehung in Vierteldrehungen im Uhrzeigersinn (für die Anzeige).
+    var pendingQuarterTurns: Int {
+        ImageOrientation.quarterTurns(from: original.orientation, to: edited.orientation) ?? 0
+    }
 
     func revert() {
         edited = original
@@ -71,6 +83,7 @@ final class PhotoItem: Identifiable {
         }
         switch result {
         case .success(let metadata):
+            thumbnailOrientation = metadata.orientation
             original = metadata
             edited = metadata
             isLoaded = true

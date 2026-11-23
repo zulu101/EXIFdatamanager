@@ -21,6 +21,8 @@ public struct PhotoMetadata: Equatable, Sendable {
     public var caption: String = ""
     /// Markierte Gesichter (MWG-Regionen und IPTC-Bildregionen).
     public var faces: [FaceRegion] = []
+    /// EXIF-Orientierung (1 = normal, 6 = 90° rechts, 3 = 180°, 8 = 90° links; 2/4/5/7 gespiegelt).
+    public var orientation: Int = 1
     /// Ursprünglicher Dateiname vor dem ersten Umbenennen (XMP `xmpMM:PreservedFileName`).
     public var preservedFileName: String?
 
@@ -60,6 +62,7 @@ public struct PhotoMetadata: Equatable, Sendable {
         // Benannte Gesichter gehören immer auch in die Personenliste.
         m.people = PhotoMetadata.unique((people + m.faces.map(\.name)).map(trim))
         m.keywords = PhotoMetadata.unique(keywords.map(trim)).filter { !m.people.contains($0) }
+        if !(1...8).contains(orientation) { m.orientation = 1 }
         if latitude == nil || longitude == nil {
             m.latitude = nil
             m.longitude = nil
@@ -79,6 +82,7 @@ public struct PhotoMetadata: Equatable, Sendable {
         if Set(people) != Set(other.people) { d.append(String(localized: "Personen")) }
         if Set(keywords) != Set(other.keywords) { d.append(String(localized: "Schlagwörter")) }
         if caption != other.caption { d.append(String(localized: "Beschreibung")) }
+        if orientation != other.orientation { d.append(String(localized: "Ausrichtung")) }
         if preservedFileName != other.preservedFileName { d.append(String(localized: "Originalname")) }
         if !facesMatch(other) { d.append(String(localized: "Gesichter")) }
         return d
@@ -108,5 +112,11 @@ public struct PhotoMetadata: Equatable, Sendable {
     static func unique(_ values: [String]) -> [String] {
         var seen = Set<String>()
         return values.filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+
+    /// Dreht das Foto um 90°: neue Orientierung, Gesichtsrahmen werden mitgedreht.
+    public mutating func rotate(clockwise: Bool) {
+        orientation = ImageOrientation.rotated(orientation, clockwise: clockwise)
+        faces = faces.map { $0.rotated(clockwise: clockwise) }
     }
 }

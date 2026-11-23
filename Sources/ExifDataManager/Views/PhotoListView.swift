@@ -60,6 +60,7 @@ struct PhotoRow: View {
                 }
             }
             .frame(width: 52, height: 52)
+            .rotationEffect(.degrees(Double(90 * item.thumbnailQuarterTurns)))
             .clipShape(RoundedRectangle(cornerRadius: 4))
 
             VStack(alignment: .leading, spacing: 2) {
