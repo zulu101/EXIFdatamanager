@@ -76,16 +76,20 @@ final class RotationAndBackupTests: XCTestCase {
     func testImageRotationForDisplay() throws {
         let source = CGImageSourceCreateWithURL(makeImage(.png, ext: "png") as CFURL, nil)!
         let image = CGImageSourceCreateImageAtIndex(source, 0, nil)!
-        XCTAssertEqual(pixel(image, x: 2, y: 2).r, 255)
-        XCTAssertEqual(pixel(image, x: 2, y: 2).g, 0)
+        // Farbmanagement verschiebt reines Rot leicht (z. B. Grün 38 statt 0) – Weiß hätte 255.
+        XCTAssertGreaterThan(pixel(image, x: 2, y: 2).r, 200)
+        XCTAssertLessThan(pixel(image, x: 2, y: 2).g, 128)
+        XCTAssertGreaterThan(pixel(image, x: 77, y: 2).g, 200, "oben rechts ist weiß")
 
         let right = try XCTUnwrap(ImageOrientation.rotate(image, quarterTurns: 1))
         XCTAssertEqual(right.width, 40)
         XCTAssertEqual(right.height, 80)
-        XCTAssertEqual(pixel(right, x: 37, y: 2).g, 0, "Nach Rechtsdrehung liegt Rot oben rechts")
+        XCTAssertLessThan(pixel(right, x: 37, y: 2).g, 128, "Nach Rechtsdrehung liegt Rot oben rechts")
+        XCTAssertGreaterThan(pixel(right, x: 2, y: 2).g, 200, "… und nicht mehr oben links")
 
         let left = try XCTUnwrap(ImageOrientation.rotate(image, quarterTurns: -1))
-        XCTAssertEqual(pixel(left, x: 2, y: 77).g, 0, "Nach Linksdrehung liegt Rot unten links")
+        XCTAssertLessThan(pixel(left, x: 2, y: 77).g, 128, "Nach Linksdrehung liegt Rot unten links")
+        XCTAssertGreaterThan(pixel(left, x: 2, y: 2).g, 200, "… und nicht mehr oben links")
     }
 
     // MARK: - Speichern

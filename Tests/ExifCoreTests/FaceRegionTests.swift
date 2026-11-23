@@ -149,7 +149,9 @@ final class FaceRegionTests: XCTestCase {
 
     func testRotatedImageStoresUnrotatedCoordinates() throws {
         let url = makeImage(.jpeg, ext: "jpg", orientation: 6)
-        var m = PhotoMetadata()
+        // Wie in der App: vorhandene Angaben (inkl. Ausrichtung) lesen und dann ergänzen.
+        var m = try MetadataService.read(from: url)
+        XCTAssertEqual(m.orientation, 6)
         m.faces = [FaceRegion(name: "Max", x: 0, y: 0, width: 0.2, height: 0.1)]
         try MetadataService.write(m, to: url)
 
